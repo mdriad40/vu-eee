@@ -111,6 +111,32 @@
     teacherContactDepartment: document.getElementById('teacherContactDepartment')
   };
 
+  function enableRipple(node) {
+    if (!node || node.dataset.ripple === 'true') return;
+    node.dataset.ripple = 'true';
+    node.addEventListener('pointerdown', handleRipple);
+  }
+
+  function handleRipple(event) {
+    const target = event.currentTarget;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    ripple.className = 'touch-ripple';
+    const maxDimension = Math.max(rect.width, rect.height);
+    const baseSize = Math.min(Math.max(maxDimension * 1.35, 80), 140);
+    const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX);
+    const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY);
+    const originX = (clientX ?? rect.left + rect.width / 2) - rect.left;
+    const originY = (clientY ?? rect.top + rect.height / 2) - rect.top;
+    ripple.style.width = ripple.style.height = `${baseSize}px`;
+    ripple.style.left = `${originX - baseSize / 2}px`;
+    ripple.style.top = `${originY - baseSize / 2}px`;
+    ripple.style.animationDuration = '360ms';
+    target.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  }
+
   // Init Lottie animation (first visit landing screen)
   function initLottie() {
     if (!window.lottie || !els.lottie) return;
@@ -587,6 +613,7 @@
 
   // Bottom tabs
   els.tabs.forEach(btn => {
+    enableRipple(btn);
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
       setScreen(tab);
@@ -645,6 +672,7 @@
       btn.appendChild(dayLabel);
       btn.appendChild(dateLabel);
       btn.addEventListener('click', () => renderDay(day));
+      enableRipple(btn);
       els.dayScroller.appendChild(btn);
     });
   }
@@ -1204,6 +1232,7 @@
       btn.appendChild(dayLabel);
       btn.appendChild(dateLabel);
       btn.addEventListener('click', () => renderTeacherDay(day));
+      enableRipple(btn);
       els.teacherDayScroller.appendChild(btn);
     });
   }
@@ -1457,6 +1486,7 @@
           queryRoomByTimeSlot(value, department, day);
         }
       });
+      enableRipple(btn);
       els.roomQueryDayScroller.appendChild(btn);
     });
     
