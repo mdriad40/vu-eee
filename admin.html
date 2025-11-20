@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Routine Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      @media (max-width: 560px) {
+        .admin-grid-3 { grid-template-columns: 1fr !important; }
+        .admin-actions { flex-wrap: wrap; }
+        .admin-actions > button { width: 100%; }
+      }
+    </style>
+</head>
+<body>
+    <div class="screen" style="max-width:960px;margin:0 auto;">
+        <h1 class="app-title">Routine Admin</h1>
+
+        <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                <label class="field">
+                    <span>Semester</span>
+                    <select id="a_semester"></select>
+                </label>
+                <label class="field">
+                    <span>Section</span>
+                    <select id="a_section" disabled></select>
+                </label>
+                <label class="field">
+                    <span>Day</span>
+                    <select id="a_day">
+                        <option>Saturday</option>
+                        <option>Sunday</option>
+                        <option>Monday</option>
+                        <option>Tuesday</option>
+                        <option>Wednesday</option>
+                        <option>Thursday</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                <label class="field">
+                    <span>Time</span>
+                    <select id="a_time" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);">
+                        <option value="">Select Time</option>
+                        <option>9:00 - 10:25</option>
+                        <option>10:25 - 11:50</option>
+                        <option>11:50 - 1:15</option>
+                        <option>1:45 - 3:10</option>
+                        <option>3:10 - 4:35</option>
+                        <option>4:35 - 6:00</option>
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Course Title</span>
+                    <input id="a_course" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                </label>
+                <label class="field">
+                    <span>Course Code</span>
+                    <input id="a_code" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                </label>
+            </div>
+
+            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                <label class="field">
+                    <span>Teacher</span>
+                    <div class="autocomplete-container" style="position:relative;">
+                        <input id="a_teacher" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" autocomplete="off" spellcheck="false" />
+                        <div id="a_teacher_suggestions" class="autocomplete-dropdown hidden"></div>
+                    </div>
+                    <div id="a_teacher_new_form" class="hidden" style="margin-top:12px;padding:12px;background:var(--card);border:1px solid var(--outline);border-radius:12px;display:grid;gap:12px;">
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Add New Teacher</div>
+                        <label class="field">
+                            <span>Full Name</span>
+                            <input id="a_teacher_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Contact No</span>
+                            <input id="a_teacher_contact" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Email</span>
+                            <input id="a_teacher_mail" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Designation</span>
+                            <input id="a_teacher_designation" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <button id="a_teacher_save" class="primary-btn small">Save Teacher</button>
+                        <div id="a_teacher_status" class="soft"></div>
+                    </div>
+                </label>
+                <label class="field">
+                    <span>Room</span>
+                    <input id="a_room" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                </label>
+                <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                    <button id="btn_add" class="primary-btn">Add / Update</button>
+                    <button id="btn_delete" class="ghost-btn">Delete Selected</button>
+                    <button id="btn_publish" class="primary-btn small">Publish Day</button>
+                </div>
+            </div>
+
+            <div class="card" style="padding:12px;display:grid;gap:12px;">
+                <div style="font-size:12px;color:var(--muted);">CR / Co-CR (per semester and section)</div>
+                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <label class="field">
+                        <span>CR Name</span>
+                        <input id="a_cr1_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                    <label class="field">
+                        <span>CR ID</span>
+                        <input id="a_cr1_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                    <label class="field">
+                        <span>CR Phone</span>
+                        <input id="a_cr1_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                </div>
+                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <label class="field">
+                        <span>Co-CR Name</span>
+                        <input id="a_cr2_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                    <label class="field">
+                        <span>Co-CR ID</span>
+                        <input id="a_cr2_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                    <label class="field">
+                        <span>Co-CR Phone</span>
+                        <input id="a_cr2_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                </div>
+                <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                    <button id="btn_save_cr" class="primary-btn small">Save CRs</button>
+                </div>
+                <div id="a_cr_status" class="soft"></div>
+            </div>
+
+            <div class="card" style="padding:12px;display:grid;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div style="font-size:14px;color:var(--text);font-weight:600;">Section Information</div>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+                        <span style="font-size:12px;color:var(--muted);">Show Form</span>
+                        <input type="checkbox" id="sectionInfoToggle" style="width:48px;height:24px;cursor:pointer;accent-color:var(--primary);" />
+                    </label>
+                </div>
+                <div id="sectionInfoForm" class="hidden" style="display:grid;gap:12px;margin-top:8px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Batch</span>
+                            <input id="a_batch" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Total Students</span>
+                            <input id="a_total_students" type="number" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                    </div>
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Coordinator Name</span>
+                            <input id="a_coordinator_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Coordinator Phone</span>
+                            <input id="a_coordinator_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Coordinator Email</span>
+                            <input id="a_coordinator_email" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                    </div>
+                    <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                        <button id="btn_save_section_info" class="primary-btn small">Save Section Info</button>
+                        <button id="btn_delete_section_info" class="ghost-btn">Delete</button>
+                    </div>
+                    <div id="a_section_info_status" class="soft"></div>
+                </div>
+            </div>
+
+            <div class="card" style="padding:12px;display:grid;gap:12px;">
+                <div style="font-size:12px;color:var(--muted);">Routine Version</div>
+                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <label class="field">
+                        <span>Version Label (shown on app)</span>
+                        <input id="a_version" placeholder="e.g., Fall 2025 v2" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                    </label>
+                    <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                        <button id="btn_save_version" class="primary-btn small">Save Version</button>
+                    </div>
+                </div>
+                <div id="a_version_status" class="soft"></div>
+            </div>
+
+            <div class="card" style="padding:12px;border:1px dashed var(--outline);">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Day Slots</div>
+                <ul id="a_list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
+                <div id="a_status" class="soft" style="margin-top:8px;"></div>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;">
+            <a href="index.html" class="ghost-btn" style="text-decoration: none;">Back to App</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
+
+

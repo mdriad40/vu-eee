@@ -1,0 +1,1218 @@
+:root {
+    /* Base colors */
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #e0e0e0;
+    --muted: #b3b3b3;
+    --primary: #6c63ff;
+    --accent: #9e8cff;
+    --outline: #2a2a2a;
+    --success: #2ecc71;
+
+    /* Schedule slot customization */
+    --slot-gap: 16px;
+    --slot-padding: 14px;
+    --slot-radius: 12px;
+    --slot-content-gap: 12px;
+    
+    /* Time slot customization */
+    --time-radius: 10px;
+    --time-padding: 8px 12px;
+    --time-width: 90px;
+    
+    /* Schedule items customization */
+    --schedule-item-gap: 0px;
+    --schedule-item-padding: 3px 0;
+    --schedule-text-size: 11px;
+    --schedule-label-color: var(--muted);
+    --schedule-label-weight: 500;
+    --schedule-value-color: var(--text);
+    --schedule-value-weight: 600;
+    
+    /* Title customization */
+    --title-size: 15px;
+    --title-margin: 4px;
+    --slot-title-color: var(--text);
+    
+    /* Dropdown menu universal variables */
+    --dropdown-padding: 12px;
+    --dropdown-background: #171717;
+    --dropdown-background-hover: #1b1b1b;
+    --dropdown-background-focus: #1b1b1b;
+    --dropdown-border: 1px solid var(--outline);
+    --dropdown-border-focus: 1.5px solid var(--accent);
+    --dropdown-border-radius: 12px;
+    --dropdown-font-size: 12px;
+    --dropdown-color: var(--text);
+    --dropdown-disabled-opacity: 0.7;
+    --dropdown-focus-shadow: 0 0 0 3px rgba(158,140,255,.15);
+    --dropdown-focus-shadow-custom: 0 0 0 4px rgba(158,140,255,.2);
+    --dropdown-transition: border-color .12s ease, box-shadow .12s ease, background-color .12s ease, transform .08s ease;
+    
+    /* Dropdown menu item variables */
+    --dropdown-item-padding: 12px 16px;
+    --dropdown-item-font-size: 11px;
+    --dropdown-item-hover-bg: rgba(158,140,255,.15);
+    --dropdown-item-selected-bg: rgba(158,140,255,.15);
+    --dropdown-item-selected-border: 3px solid var(--accent);
+    --dropdown-item-disabled-opacity: 0.5;
+    
+    /* Dropdown menu container variables */
+    --dropdown-menu-background: var(--card);
+    --dropdown-menu-border: 1px solid var(--outline);
+    --dropdown-menu-border-radius: 12px;
+    --dropdown-menu-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    --dropdown-menu-margin-top: 4px;
+    --dropdown-menu-animation-duration: 0.2s;
+    
+    /* Dropdown arrow variables */
+    --dropdown-arrow-size: 10px;
+    --dropdown-arrow-color: var(--muted);
+    --dropdown-arrow-margin: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    overflow-y: auto;
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+body::-webkit-scrollbar {
+    display: none;
+}
+
+#app {
+    min-height: 100vh;
+    padding-bottom: 84px;
+    box-sizing: border-box;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.screen {
+    padding: 16px;
+    padding-top: 76px; /* header height (52px) + extra padding */
+    padding-bottom: 100px; /* extra space for footer */
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+.landing-card {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.lottie {
+    width: 0px;
+    height: 0px;
+    margin-top: 8px;
+}
+
+.app-title {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.selectors {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+}
+
+@media (min-width: 560px) {
+    .selectors {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field span {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.field select {
+    width: 100%;
+    padding: var(--dropdown-padding);
+    color: var(--dropdown-color);
+    background: var(--dropdown-background);
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-border-radius);
+    font-size: var(--dropdown-font-size);
+    outline: none;
+    transition: var(--dropdown-transition);
+}
+.field select:disabled {
+    opacity: var(--dropdown-disabled-opacity);
+    cursor: not-allowed;
+}
+.field select:focus {
+    border: var(--dropdown-border-focus);
+    box-shadow: var(--dropdown-focus-shadow);
+    background: var(--dropdown-background-focus);
+}
+
+.primary-btn {
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    color: white;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .2s ease;
+    box-shadow: 0 6px 18px rgba(108, 99, 255, .25);
+}
+
+.primary-btn:hover {
+    transform: translateY(-1px);
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+}
+
+.primary-btn.small {
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.ghost-btn {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--outline);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.error-text {
+    color: #ff6b6b;
+    min-height: 20px;
+    margin: 4px 0 0;
+}
+
+.main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--outline);
+    padding: 16px 0;
+}
+
+.header-title {
+    font-family: "Poppins";
+    font-weight: 600;
+    font-size: 20px;
+    text-align: center;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.selection-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.selection-controls .teacher-search-wrapper {
+    flex: 0 0 calc(65% - 8px);
+}
+
+.selection-controls .teacher-department-wrapper {
+    flex: 0 0 calc(35% - 8px);
+}
+
+.control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.control label {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.control select {
+    width: 100%;
+    padding: var(--dropdown-padding);
+    background: var(--dropdown-background);
+    color: var(--dropdown-color);
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-border-radius);
+    font-size: var(--dropdown-font-size);
+    transition: var(--dropdown-transition);
+}
+.control select:focus {
+    border: var(--dropdown-border-focus);
+    box-shadow: var(--dropdown-focus-shadow);
+    background: var(--dropdown-background-focus);
+}
+
+/* Custom Animated Dropdown */
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.custom-dropdown-button {
+    width: 100%;
+    padding: var(--dropdown-padding);
+    background: var(--dropdown-background);
+    color: var(--dropdown-color);
+    border: var(--dropdown-border);
+    border-radius: var(--dropdown-border-radius);
+    font-size: var(--dropdown-font-size);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color .12s ease, box-shadow .12s ease, background-color .12s ease;
+    text-align: left;
+}
+
+.custom-dropdown-button:hover {
+    background: var(--dropdown-background-hover);
+}
+
+.custom-dropdown-button:focus,
+.custom-dropdown-button.open {
+    border: var(--dropdown-border-focus);
+    box-shadow: var(--dropdown-focus-shadow-custom);
+    background: var(--dropdown-background-focus);
+    outline: none;
+}
+
+.custom-dropdown-button.disabled {
+    opacity: var(--dropdown-disabled-opacity);
+    cursor: not-allowed;
+}
+
+.custom-dropdown-button::after {
+    content: '▼';
+    font-size: var(--dropdown-arrow-size);
+    color: var(--dropdown-arrow-color);
+    transition: transform var(--dropdown-menu-animation-duration) ease;
+    margin-left: var(--dropdown-arrow-margin);
+}
+
+.custom-dropdown-button.open::after {
+    transform: rotate(180deg);
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: calc(100% + var(--dropdown-menu-margin-top));
+    left: 0;
+    right: 0;
+    background: var(--dropdown-menu-background);
+    border: var(--dropdown-menu-border);
+    border-radius: var(--dropdown-menu-border-radius);
+    z-index: 1000;
+    box-shadow: var(--dropdown-menu-shadow);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity var(--dropdown-menu-animation-duration) ease-out, transform var(--dropdown-menu-animation-duration) ease-out;
+    pointer-events: none;
+    margin-top: var(--dropdown-menu-margin-top);
+    overflow: visible;
+    /* Hide scrollbar if it appears */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.custom-dropdown-menu::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.custom-dropdown-menu.showing {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.custom-dropdown-menu.hiding {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity var(--dropdown-menu-animation-duration) ease-in, transform var(--dropdown-menu-animation-duration) ease-in;
+}
+
+.custom-dropdown-menu.hidden {
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.custom-dropdown-item {
+    padding: var(--dropdown-item-padding);
+    cursor: pointer;
+    color: var(--dropdown-color);
+    font-size: var(--dropdown-item-font-size);
+    transition: background-color .12s ease;
+    border-bottom: 1px solid var(--outline);
+}
+
+.custom-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.custom-dropdown-item:hover {
+    background: var(--dropdown-item-hover-bg);
+}
+
+.custom-dropdown-item.selected {
+    background: var(--dropdown-item-selected-bg);
+    border-left: var(--dropdown-item-selected-border);
+    padding-left: 13px; /* Adjust padding to compensate for border */
+}
+
+.custom-dropdown-item.disabled {
+    opacity: var(--dropdown-item-disabled-opacity);
+    cursor: not-allowed;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+    padding-bottom: 20px;
+}
+
+.details {
+    padding: 10px;
+    padding-left: 18px;
+    padding-right: 18px;
+    margin-bottom: 4px;
+}
+
+.details-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.details-row > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--outline);
+}
+
+.details-row > div:last-child {
+    border-bottom: none;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.accent {
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 600;
+    text-align: right;
+}
+
+.soft {
+    color: #cfc8ff;
+    opacity: .85;
+    text-align: right;
+}
+
+.cr-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.cr-label {
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.cr-info {
+    text-align: right;
+}
+
+.scroller {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    overflow-x: auto;
+    padding: 6px 2px;
+    margin-top: -4px;
+}
+
+.day {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding-top: 15px;
+    padding-bottom: 12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    background: #171717;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: box-shadow .2s ease, transform .12s ease;
+}
+
+.day:hover {
+    transform: translateY(-1px);
+}
+
+.day.active {
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 0 0 1px rgba(158,140,255,.15) inset, 0 0 16px rgba(158,140,255,.32);
+    background: linear-gradient(90deg, rgba(108,99,255,.25), rgba(158,140,255,.25));
+}
+
+.day-date {
+    font-size: 18px;
+    font-weight: 500;
+    order: -1;
+}
+
+.day-name {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.day.active .day-name {
+    opacity: 1;
+}
+
+.day.active .day-date {
+    font-weight: 600;
+}
+
+.date-today {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 0 4px;
+}
+
+.schedule {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 8px;
+    margin-top: -4px;
+}
+
+.slot-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--slot-gap, 16px);
+    padding: var(--slot-padding, 14px);
+    border: 1px solid var(--outline);
+    border-radius: var(--slot-radius, 12px);
+    background: var(--card);
+}
+
+.slot-card.selected {
+    outline: 2px solid var(--accent);
+    box-shadow: 0 0 0 3px rgba(158,140,255,.15);
+}
+
+.slot-time {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #171717;
+    border: 1px dashed var(--outline);
+    border-radius: var(--time-radius, 10px);
+    color: var(--accent);
+    font-weight: 600;
+    padding: var(--time-padding, 8px 12px);
+    min-width: var(--time-width, 90px);
+}
+
+.slot-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slot-content-gap, 12px);
+}
+
+.slot-title {
+    font-family: "Poppins";
+    font-weight: 600;
+    font-size: var(--title-size, 15px);
+    color: var(--slot-title-color, var(--text));
+    margin-bottom: var(--title-margin, 4px);
+}
+
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--schedule-item-gap, 8px);
+}
+
+.kv {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--schedule-text-size, 13px);
+    padding: var(--schedule-item-padding, 4px 0);
+    border-bottom: 1px solid var(--outline);
+}
+
+.kv:last-child {
+    border-bottom: none;
+}
+
+.kv span {
+    color: var(--schedule-label-color, var(--muted));
+    font-weight: var(--schedule-label-weight, 500);
+}
+
+.kv b {
+    color: var(--schedule-value-color, var(--text));
+    font-weight: var(--schedule-value-weight, 600);
+    text-align: right;
+}
+
+.teacher {
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 24px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+/*Lottie Animation*/
+.empty-title {
+    font-size: 16px;
+    font-weight: 550;
+    color: rgb(160, 160, 160);
+    font-family: "Poppins", sans-serif;
+    margin-bottom: 8px;
+}
+
+.empty-lottie {
+    width: 220px;
+    height: 220px;
+    max-width: 100%;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-top: -70px;
+    margin-bottom: -160px;
+}
+
+.empty-lottie svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.placeholder {
+    text-align: center;
+    margin-top: 80px;
+    color: var(--muted);
+}
+
+/* Teacher Search Autocomplete */
+.teacher-search-wrapper {
+    position: relative;
+}
+
+.autocomplete-container {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-container input {
+    width: 100%;
+    padding: 12px;
+    background: #171717;
+    color: var(--text);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    font-size: 14px;
+    transition: border-color .12s ease, border-width .12s ease, box-shadow .12s ease, background-color .12s ease;
+}
+
+.autocomplete-container input:focus {
+    border: 1.5px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(158,140,255,.2);
+    background: #1b1b1b;
+    outline: none;
+}
+
+.autocomplete-container input:invalid {
+    border-color: var(--outline);
+    box-shadow: none;
+}
+
+.autocomplete-container input:invalid:focus {
+    border: 1.5px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(158,140,255,.2);
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    pointer-events: none;
+}
+
+.autocomplete-dropdown.showing {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.autocomplete-dropdown.hiding {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+}
+
+.autocomplete-dropdown.hidden {
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.autocomplete-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--outline);
+    transition: background-color .12s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+    background: rgba(158,140,255,.15);
+}
+
+.autocomplete-item-name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 11px;
+}
+
+.autocomplete-item-short {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: rgba(18,18,18,.85);
+    border-top: 1px solid var(--outline);
+    backdrop-filter: blur(8px);
+}
+
+.tab {
+    appearance: none;
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 4px;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+.tab-icon-img {
+    height: 21px;
+    width: 21px;
+}
+.tab-label {
+    font-size: 10px;
+    margin-top: -5px;
+    transition: font-size 0.3s ease;
+}
+
+.tab.active {
+    color: var(--accent);
+    text-shadow: 0 0 18px rgba(158,140,255,.6);
+}
+
+.tab.active .tab-label {
+    font-size: 12px;
+}
+
+/* Smooth show/hide */
+.screen {
+    animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#teacherContactBtn {
+    width: 100%;
+}
+/* Teacher Contact Popup */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.popup-overlay.showing {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.popup-overlay.hidden {
+    display: none;
+}
+
+.popup-content {
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 45vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    transform: scale(0.95) translateY(10px);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0;
+}
+
+.popup-overlay.showing .popup-content {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    padding-top: 20px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--outline);
+}
+
+.popup-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text);
+    font-family: "Poppins", sans-serif;
+}
+
+.popup-close {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.popup-close:hover {
+    background: rgba(158, 140, 255, 0.1);
+    color: var(--accent);
+}
+
+.popup-body {
+    padding: 20px;
+}
+
+.contact-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--outline);
+    font-size: 12px;
+}
+
+.contact-info-item:last-child {
+    border-bottom: none;
+}
+
+.contact-label {
+    color: var(--muted);
+    font-weight: 300;
+    font-size: 11px;
+}
+
+.contact-value {
+    color: var(--text);
+    font-weight: 300;
+    font-size: 11px;
+    text-align: right;
+}
+#teacherContactPhone, #teacherContactEmail {
+    color: var(--primary);
+    cursor: pointer;
+}
+
+/* Query Menu Bar */
+.query-menu-bar {
+    display: flex;
+    gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 16px;
+    padding: 2px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.query-menu-segment {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+.query-menu-segment:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+.query-menu-segment:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.query-menu-segment.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(85, 85, 85, 0.03);
+}
+
+.query-menu-segment:not(.active) {
+    background:  rgba(0, 0, 0, 0.3);
+}
+
+.query-menu-icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+.query-interface {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.query-results {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.query-result-card {
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.query-result-title {
+    font-family: "Poppins";
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 4px;
+}
+
+.query-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--outline);
+}
+
+.query-result-item:last-child {
+    border-bottom: none;
+}
+
+.query-result-label {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.query-result-value {
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+}
+
+.query-result-value.empty {
+    color: var(--success);
+}
+
+.query-result-value.occupied {
+    color: #ff6b6b;
+}
+
+/* CR Info Results */
+.cr-info-results {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.cr-info-block {
+    background: var(--card);
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cr-info-block-title {
+    font-family: "Poppins";
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cr-info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0px 0;
+    border-bottom: 1px solid var(--outline);
+}
+
+.cr-info-item:last-child {
+    border-bottom: none;
+}
+
+.cr-info-label {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: -12px;
+    font-weight: 400;
+}
+
+.cr-info-value {
+    color: var(--text);
+    font-size: 11px;
+    margin-top: -5px;
+    padding-bottom: 3px;
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Room Query Day Selector */
+#roomQueryDaySelectorWrapper {
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+
+.room-query-day-title {
+    font-family: "Poppins";
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+/* Room Query Empty Slots - Easy to style from CSS */
+/* Container for all empty slot cards */
+.room-query-empty-slots {
+    /* Add your custom styles here - inherits from .schedule */
+}
+
+/* Individual empty slot card - same as slot-card but with this class for easy targeting */
+.room-query-empty-slot-card {
+    /* Add your custom styles here - inherits from .slot-card */
+    /* Example: background: var(--card); border: 1px solid var(--outline); */
+}
+
+/* Time slot on the left - colored bar */
+.room-query-empty-slot-time {
+    /* Add your custom styles here - inherits from .slot-time */
+    /* Example: background: #171717; color: var(--accent); */
+}
+
+/* Main content area on the right */
+.room-query-empty-slot-main {
+    /* Add your custom styles here - inherits from .slot-main */
+}
+
+/* Room number title */
+.room-query-empty-slot-title {
+    /* Add your custom styles here - inherits from .slot-title */
+    /* Example: color: var(--text); font-weight: 600; */
+}
+
+/* Room Query Free Slots (for room number search) */
+.room-query-free-slots {
+    /* Container for free slot blocks - full width, vertical stack */
+}
+
+.room-query-free-slot-block {
+    /* Individual free slot block - full width */
+    /* Add your custom styles here */
+}
+
+/* Room title - "Room: 402" */
+.room-query-free-slot-title {
+    font-size: 12px;
+    font-weight: 350;
+    color: var(--text);
+    margin-bottom: 6px;
+    padding-bottom: 12px;
+}
+
+/* Time slot - second line */
+.room-query-free-slot-time {
+    font-size: 11px;
+    color: var(--muted);
+}
+
