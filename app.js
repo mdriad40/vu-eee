@@ -1,6 +1,11 @@
 (function () {
   const PRIMARY_COLOR = '#6C63FF';
   const DAYS_ORDER = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  
+  // Department Lock Configuration
+  // Set to 'yes' to disable other departments (they cannot be selected)
+  // Set to 'no' to allow selection but force back to EEE (other departments are selectable but will revert)
+  const DEPARTMENT_LOCK_MODE = 'yes'; // Change this to 'yes' or 'no' as needed
 
   // Firebase init (Compat SDK included via index.html)
   const firebaseConfig = {
@@ -18,24 +23,16 @@
   }
   const db = window.firebase ? window.firebase.database() : null;
 
-  // Live routine dataset keyed by semester->section->day (filled from RTDB or cache)
+  // Live routine dataset keyed by department->semester->section->day (filled from RTDB or cache)
   const routineData = {};
 
-  // Define how many sections per semester (example: some 5, some 3)
-  const semesterToSections = {
-    '1-1': ['A','B','C','D','E'],
-    '1-2': ['A','B','C'],
-    '2-1': ['A','B','C','D'],
-    '2-2': ['A','B','C'],
-    '3-1': ['A','B','C','D','E'],
-    '3-2': ['A','B','C'],
-    '4-1': ['A','B','C'],
-    '4-2': ['A','B']
-  };
+  // Global state for departments and sections
+  let departments = [];
+  let departmentSections = {}; // { dept: { semester: [sections] } }
 
-  // Live CR details loaded from DB
+  // Live CR details loaded from DB (department->semester->section)
   const crDetails = {};
-  // Live version labels loaded from DB
+  // Live version labels loaded from DB (department->semester)
   const versionLabels = {};
 
   const els = {
@@ -331,6 +328,35 @@
     }, 200); // Match CSS transition duration
   }
 
+  // Helper function to check if an option is a placeholder
+  function isPlaceholderOption(option) {
+    if (!option) return false;
+    const value = option.value || '';
+    const text = option.textContent.trim() || '';
+    // Check if it's a placeholder: empty value OR text starts with "Select" or is empty
+    return value === '' || text === '' || /^select\s/i.test(text);
+  }
+  
+  // Helper function to get button display text
+  function getButtonText(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (!selectedOption) return '';
+    
+    // Check if this is a placeholder option
+    if (isPlaceholderOption(selectedOption)) {
+      // For specific selects, show just "Select" instead of full placeholder text
+      const selectId = selectElement.id;
+      if ( 
+          selectId === 'crInfoSemester' || 
+          selectId === 'crInfoSection') {
+        return 'Select';
+      }
+    }
+    
+    // Always show the selected option's text (whether placeholder or real option)
+    return selectedOption.textContent;
+  }
+
   // Convert native select to custom animated dropdown
   function convertSelectToCustomDropdown(selectElement) {
     if (!selectElement || selectElement.dataset.converted === 'true') return null;
@@ -346,17 +372,23 @@
     const menu = document.createElement('div');
     menu.className = 'custom-dropdown-menu hidden';
     
-    // Get current selected option
-    const selectedOption = selectElement.options[selectElement.selectedIndex];
-    button.textContent = selectedOption ? selectedOption.textContent : '';
+    // Get current selected option and set button text
+    button.textContent = getButtonText(selectElement);
     
-    // Populate menu with options
+    // Populate menu with options (excluding placeholder options)
     function updateMenu() {
       menu.innerHTML = '';
       Array.from(selectElement.options).forEach((option, index) => {
+        // Skip placeholder options from the menu
+        if (isPlaceholderOption(option)) {
+          return;
+        }
+        
         const item = document.createElement('div');
         item.className = 'custom-dropdown-item';
-        if (option.selected) item.classList.add('selected');
+        if (option.selected && !isPlaceholderOption(option)) {
+          item.classList.add('selected');
+        }
         if (option.disabled) item.classList.add('disabled');
         item.textContent = option.textContent;
         item.dataset.value = option.value;
@@ -409,11 +441,16 @@
     
     // Update button when select changes programmatically
     const observer = new MutationObserver(() => {
-      const selectedOption = selectElement.options[selectElement.selectedIndex];
-      button.textContent = selectedOption ? selectedOption.textContent : '';
+      button.textContent = getButtonText(selectElement);
       updateMenu();
     });
     observer.observe(selectElement, { childList: true, attributes: true, attributeFilter: ['selected'] });
+    
+    // Also listen to change events to update button text
+    selectElement.addEventListener('change', () => {
+      button.textContent = getButtonText(selectElement);
+      updateMenu();
+    });
     
     // Handle disabled state changes
     const disabledObserver = new MutationObserver(() => {
@@ -437,6 +474,50 @@
     wrapper.appendChild(selectElement); // Keep select for form submission
     
     return wrapper;
+  }
+
+  function lockDepartmentSelect(selectElement) {
+    if (!selectElement) return;
+    
+    const isLockMode = DEPARTMENT_LOCK_MODE === 'yes';
+    
+    const ensureOptionsLocked = () => {
+      let eeeIndex = -1;
+      Array.from(selectElement.options || []).forEach((opt, idx) => {
+        const isEEE = opt.value === 'EEE';
+        if (isEEE) eeeIndex = idx;
+        // If lock mode is 'yes', disable other departments
+        // If lock mode is 'no', keep them enabled (selectable but will revert)
+        if (opt.value && !isEEE) {
+          opt.disabled = isLockMode;
+        }
+      });
+      if (eeeIndex !== -1 && selectElement.selectedIndex !== eeeIndex) {
+        selectElement.selectedIndex = eeeIndex;
+      }
+    };
+    
+    ensureOptionsLocked();
+    
+    const enforceEEE = () => {
+      ensureOptionsLocked();
+      if (selectElement.value !== 'EEE') {
+        selectElement.__forcingEEE = true;
+        selectElement.value = 'EEE';
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        selectElement.__forcingEEE = false;
+      }
+    };
+    
+    enforceEEE();
+    
+    if (selectElement.dataset.departmentLocked === 'true') return;
+    selectElement.dataset.departmentLocked = 'true';
+    
+    selectElement.addEventListener('change', () => {
+      if (selectElement.__forcingEEE) return;
+      enforceEEE();
+    });
   }
 
   // Update tab icons based on active page
@@ -469,29 +550,31 @@
   }
 
   // Cache helpers for offline support
-  function getCacheKey(semester, section) {
-    return `cse.routine.${semester}.${section}`;
+  function getCacheKey(department, semester, section) {
+    return `cse.routine.${department}.${semester}.${section}`;
   }
 
-  function saveRoutineToCache(semester, section, data) {
+  function saveRoutineToCache(department, semester, section, data) {
     try {
-      localStorage.setItem(getCacheKey(semester, section), JSON.stringify(data || {}));
+      localStorage.setItem(getCacheKey(department, semester, section), JSON.stringify(data || {}));
     } catch (_) {}
   }
 
-  function loadRoutineFromCache(semester, section) {
+  function loadRoutineFromCache(department, semester, section) {
     try {
-      const raw = localStorage.getItem(getCacheKey(semester, section));
+      const raw = localStorage.getItem(getCacheKey(department, semester, section));
       return raw ? JSON.parse(raw) : null;
     } catch (_) { return null; }
   }
 
-  function ensureNested(obj, k1, k2) {
+  function ensureNested(obj, k1, k2, k3) {
     if (!obj[k1]) obj[k1] = {};
-    if (!obj[k1][k2]) obj[k1][k2] = { Saturday: [], Sunday: [], Monday: [], Tuesday: [], Wednesday: [], Thursday: [] };
-    return obj[k1][k2];
+    if (!obj[k1][k2]) obj[k1][k2] = {};
+    if (!obj[k1][k2][k3]) obj[k1][k2][k3] = { Saturday: [], Sunday: [], Monday: [], Tuesday: [], Wednesday: [], Thursday: [] };
+    return obj[k1][k2][k3];
   }
 
+  let currentDepartment = '';
   let currentSemester = '';
   let currentSection = '';
   let currentDay = '';
@@ -504,20 +587,84 @@
   let currentTeacherDay = '';
   let activeTeacherDbRef = null;
 
-  // Attach real-time listener to RTDB path routines/{semester}/{section}
+  // Load departments from Firebase
+  async function loadDepartments() {
+    if (!db) return;
+    try {
+      const snap = await db.ref('departments').once('value');
+      const deptData = snap.val();
+      if (deptData && Array.isArray(deptData)) {
+        departments = deptData.sort((a, b) => (a.order || 0) - (b.order || 0));
+      } else if (deptData) {
+        departments = Object.values(deptData).sort((a, b) => (a.order || 0) - (b.order || 0));
+      } else {
+        // Default to EEE if no departments exist
+        departments = [{ name: 'EEE', order: 0 }];
+      }
+      updateAllDepartmentDropdowns();
+    } catch (e) {
+      console.error('Failed to load departments:', e);
+      departments = [{ name: 'EEE', order: 0 }];
+      updateAllDepartmentDropdowns();
+    }
+  }
+
+  // Load sections for a department and semester
+  async function loadDepartmentSections(dept, semester) {
+    if (!db || !dept || !semester) return [];
+    try {
+      const snap = await db.ref(`departmentSections/${dept}/${semester}`).once('value');
+      return snap.val() || [];
+    } catch (e) {
+      console.error('Failed to load sections:', e);
+      return [];
+    }
+  }
+
+  // Update all department dropdowns across all pages
+  function updateAllDepartmentDropdowns() {
+    const deptSelects = [
+      els.department, els.departmentDisplay, els.teacherDepartment,
+      els.roomQueryDepartment, els.crInfoDepartment
+    ].filter(el => el);
+    
+    deptSelects.forEach(select => {
+      const currentVal = select.value || '';
+      select.innerHTML = '';
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = 'Select Department';
+      select.appendChild(ph);
+      departments.forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept.name;
+        opt.textContent = dept.name;
+        if (dept.name === currentVal || (currentVal === '' && dept.name === 'EEE')) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+      
+      // Apply department lock after populating options
+      lockDepartmentSelect(select);
+    });
+  }
+
+  // Attach real-time listener to RTDB path routines/{department}/{semester}/{section}
   let activeDbRef = null;
-  function attachRoutineListener(semester, section) {
+  function attachRoutineListener(department, semester, section) {
     if (!db) return;
     if (activeDbRef) activeDbRef.off();
-    const ref = db.ref(`routines/${semester}/${section}`);
+    const ref = db.ref(`routines/${department}/${semester}/${section}`);
     activeDbRef = ref;
     ref.on('value', (snap) => {
       const value = snap.val() || { Saturday: [], Sunday: [], Monday: [], Tuesday: [], Wednesday: [], Thursday: [] };
-      ensureNested(routineData, semester, section);
-      routineData[semester][section] = value;
-      saveRoutineToCache(semester, section, value);
-      // If user is viewing this sem/sec, refresh current day
-      if (semester === currentSemester && section === currentSection) {
+      if (!routineData[department]) routineData[department] = {};
+      if (!routineData[department][semester]) routineData[department][semester] = {};
+      routineData[department][semester][section] = value;
+      saveRoutineToCache(department, semester, section, value);
+      // If user is viewing this dept/sem/sec, refresh current day
+      if (department === currentDepartment && semester === currentSemester && section === currentSection) {
         const dayToRender = currentDay || getTodayInfo().dayName || 'Saturday';
         renderDay(dayToRender);
       }
@@ -525,17 +672,19 @@
       // On error, fallback silently; UI shows last cached
     });
 
-    // Also listen to CRs for this semester and section
+    // Also listen to CRs for this department, semester and section
     try {
-      db.ref(`cr/${semester}/${section}`).on('value', (snap) => {
-        if (!crDetails[semester]) crDetails[semester] = {};
-        crDetails[semester][section] = snap.val() || null;
-        updateCRUI(semester, section);
+      db.ref(`cr/${department}/${semester}/${section}`).on('value', (snap) => {
+        if (!crDetails[department]) crDetails[department] = {};
+        if (!crDetails[department][semester]) crDetails[department][semester] = {};
+        crDetails[department][semester][section] = snap.val() || null;
+        updateCRUI(department, semester, section);
       });
-      // Also listen to version for this semester
-      db.ref(`versions/${semester}`).on('value', (snap) => {
-        versionLabels[semester] = snap.val() || '';
-        updateVersionUI(semester);
+      // Also listen to version for this department and semester
+      db.ref(`versions/${department}/${semester}`).on('value', (snap) => {
+        if (!versionLabels[department]) versionLabels[department] = {};
+        versionLabels[department][semester] = snap.val() || '';
+        updateVersionUI(department, semester);
         // Update teacher version if on teacher page
         if (currentTeacherShort) {
           updateTeacherVersionInfo();
@@ -544,16 +693,18 @@
     } catch (_) {}
   }
 
-  function persistSelection(semester, section) {
+  function persistSelection(department, semester, section) {
+    localStorage.setItem('cse.department', department);
     localStorage.setItem('cse.semester', semester);
     localStorage.setItem('cse.section', section);
     localStorage.setItem('cse.hasVisited', '1');
   }
 
   function getPersistedSelection() {
+    const department = localStorage.getItem('cse.department');
     const semester = localStorage.getItem('cse.semester');
     const section = localStorage.getItem('cse.section');
-    return semester && section ? { semester, section } : null;
+    return department && semester && section ? { department, semester, section } : null;
   }
 
   function getTodayInfo() {
@@ -598,16 +749,17 @@
   }
 
   // Landing: Get Schedule
-  els.getSchedule.addEventListener('click', () => {
+  els.getSchedule.addEventListener('click', async () => {
+    const dept = els.department.value.trim();
     const sem = els.semester.value.trim();
     const sec = els.section.value.trim();
-    if (!sem || !sec) {
-      els.landingError.textContent = 'Please select Semester and Section.';
+    if (!dept || !sem || !sec) {
+      els.landingError.textContent = 'Please select Department, Semester and Section.';
       return;
     }
     els.landingError.textContent = '';
-    persistSelection(sem, sec);
-    loadStudent(sem, sec);
+    persistSelection(dept, sem, sec);
+    await loadStudent(dept, sem, sec);
     setScreen('student');
   });
 
@@ -627,28 +779,50 @@
   });
 
   // Landing: dependent section options
-  els.semester.addEventListener('change', () => {
+  els.department.addEventListener('change', async () => {
+    const dept = els.department.value.trim();
     const sem = els.semester.value.trim();
-    populateSections(els.section, sem);
+    if (dept && sem) {
+      await populateSections(els.section, sem, '', dept);
+    }
+  });
+  els.semester.addEventListener('change', async () => {
+    const dept = els.department.value.trim();
+    const sem = els.semester.value.trim();
+    if (dept && sem) {
+      await populateSections(els.section, sem, '', dept);
+    }
   });
 
   // Student screen: direct change handlers
-  function onStudentSemesterChange() {
+  async function onStudentDepartmentChange() {
+    const dept = els.departmentDisplay.value.trim();
     const sem = els.semesterDisplay.value.trim();
-    populateSections(els.sectionDisplay, sem);
-    const sec = els.sectionDisplay.value.trim();
-    if (sem && sec) {
-      persistSelection(sem, sec);
-      loadStudent(sem, sec);
+    if (dept && sem) {
+      await populateSections(els.sectionDisplay, sem, '', dept);
+    }
+  }
+  
+  async function onStudentSemesterChange() {
+    const dept = els.departmentDisplay.value.trim();
+    const sem = els.semesterDisplay.value.trim();
+    if (dept && sem) {
+      await populateSections(els.sectionDisplay, sem, '', dept);
+      const sec = els.sectionDisplay.value.trim();
+      if (sec) {
+        persistSelection(dept, sem, sec);
+        await loadStudent(dept, sem, sec);
+      }
     }
   }
 
-  function onStudentSectionChange() {
+  async function onStudentSectionChange() {
+    const dept = els.departmentDisplay.value.trim();
     const sem = els.semesterDisplay.value.trim();
     const sec = els.sectionDisplay.value.trim();
-    if (sem && sec) {
-      persistSelection(sem, sec);
-      loadStudent(sem, sec);
+    if (dept && sem && sec) {
+      persistSelection(dept, sem, sec);
+      await loadStudent(dept, sem, sec);
     }
   }
 
@@ -678,6 +852,7 @@
   }
 
   function renderDay(day) {
+    const dept = els.departmentDisplay.value;
     const sem = els.semesterDisplay.value;
     const sec = els.sectionDisplay.value;
     currentDay = day;
@@ -692,7 +867,7 @@
     els.dateToday.textContent = day === today.dayName ? today.label : '';
 
     try {
-      const items = (((routineData || {})[sem] || {})[sec] || {})[day] || [];
+      const items = ((((routineData || {})[dept] || {})[sem] || {})[sec] || {})[day] || [];
       renderSchedule(items);
     } catch (e) {
       showNetworkError();
@@ -779,31 +954,32 @@
     els.networkMessage.classList.remove('hidden');
   }
 
-  function loadStudent(semester, section) {
-    // Fill disabled displays
+  async function loadStudent(department, semester, section) {
+    // Fill displays
     fillSemesterSelect(els.semesterDisplay, semester);
-    populateSections(els.sectionDisplay, semester, section);
-  els.detailsSemester.textContent = semLabel(semester);
-  els.detailsSection.textContent = section;
+    await populateSections(els.sectionDisplay, semester, section, department);
+    els.detailsSemester.textContent = semLabel(semester);
+    els.detailsSection.textContent = section;
 
-    updateCRUI(semester, section);
+    updateCRUI(department, semester, section);
 
     // Track current selection
+    currentDepartment = department;
     currentSemester = semester;
     currentSection = section;
 
     // Load from cache immediately for offline/first paint
-    const cached = loadRoutineFromCache(semester, section);
+    const cached = loadRoutineFromCache(department, semester, section);
     if (cached) {
-      ensureNested(routineData, semester, section);
-      routineData[semester][section] = cached;
+      ensureNested(routineData, department, semester, section);
+      routineData[department][semester][section] = cached;
     } else {
       // ensure path exists to avoid errors before data arrives
-      ensureNested(routineData, semester, section);
+      ensureNested(routineData, department, semester, section);
     }
 
     // Subscribe to live updates
-    attachRoutineListener(semester, section);
+    attachRoutineListener(department, semester, section);
 
     // Build day scroller and select default (today if present)
     const today = getTodayInfo();
@@ -814,7 +990,7 @@
     renderDay(startDay);
 
     // Show version label if loaded
-    updateVersionUI(semester);
+    updateVersionUI(department, semester);
   }
 
   function fillSemesterSelect(select, selected) {
@@ -833,6 +1009,12 @@
     if (!select.__wired) {
       select.addEventListener('change', onStudentSemesterChange);
       select.__wired = true;
+    }
+    
+    // Wire department change handler
+    if (els.departmentDisplay && !els.departmentDisplay.__wired) {
+      els.departmentDisplay.addEventListener('change', onStudentDepartmentChange);
+      els.departmentDisplay.__wired = true;
     }
     // Update custom dropdown if it exists
     const customWrapper = select.closest('.custom-dropdown');
@@ -870,19 +1052,30 @@
     }
   }
 
-  function populateSections(select, semester, selectedSection) {
-    const list = semesterToSections[semester] || [];
+  async function populateSections(select, semester, selectedSection, department) {
+    if (!select || !semester || !department) {
+      if (select) {
+        select.innerHTML = '<option value="">Select Department and Semester first</option>';
+        select.disabled = true;
+      }
+      return;
+    }
+    
+    // Load sections from Firebase
+    const sections = await loadDepartmentSections(department, semester);
     select.innerHTML = '';
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = list.length ? 'Select Section' : 'Select Section';
+    placeholder.textContent = sections.length ? 'Select Section' : 'No sections available';
     select.appendChild(placeholder);
-    list.forEach(sec => {
+    sections.forEach(sec => {
       const opt = document.createElement('option');
-      opt.value = sec; opt.textContent = sec; if (sec === selectedSection) opt.selected = true;
+      opt.value = sec;
+      opt.textContent = sec;
+      if (sec === selectedSection) opt.selected = true;
       select.appendChild(opt);
     });
-    select.disabled = list.length === 0;
+    select.disabled = sections.length === 0;
     // attach handler if student select
     if (select.id === 'sectionDisplay' && !select.__wired) {
       select.addEventListener('change', onStudentSectionChange);
@@ -929,11 +1122,11 @@
     }
   }
 
-  function updateCRUI(semester, section) {
+  function updateCRUI(department, semester, section) {
     const node1 = document.getElementById('detailsCR1');
     const node2 = document.getElementById('detailsCR2');
     if (!node1 || !node2) return;
-    const info = ((crDetails[semester] || {})[section]) || null;
+    const info = (((crDetails[department] || {})[semester] || {})[section]) || null;
     if (info && (info.cr1 || info.cr2)) {
       const cr1 = info.cr1 || {};
       const cr2 = info.cr2 || {};
@@ -945,10 +1138,10 @@
     }
   }
 
-  function updateVersionUI(semester) {
+  function updateVersionUI(department, semester) {
     const node = document.getElementById('detailsVersion');
     if (!node) return;
-    const label = versionLabels[semester] || '';
+    const label = ((versionLabels[department] || {})[semester]) || '';
     node.textContent = label || '—';
   }
 
@@ -1125,7 +1318,7 @@
   });
 
   // Load teacher routine for selected teacher and department
-  function loadTeacherRoutine(teacherShort, department) {
+  async function loadTeacherRoutine(teacherShort, department) {
     if (!db || !teacherShort || !department) return;
     
     // Clear previous listener
@@ -1139,16 +1332,23 @@
       els.teacherDetailsName.textContent = teacherShort;
     }
 
-    // Load all routines and filter by teacher
+    // Load all routines for this department and filter by teacher
     teacherRoutineData = {};
     const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
+    let totalSections = 0;
     let loadedCount = 0;
-    const totalLoads = semesters.reduce((sum, sem) => sum + (semesterToSections[sem] || []).length, 0);
     
-    semesters.forEach(sem => {
-      const sections = semesterToSections[sem] || [];
-      sections.forEach(sec => {
-        const ref = db.ref(`routines/${sem}/${sec}`);
+    // First, count total sections for this department
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      totalSections += sections.length;
+    }
+    
+    // Then load routines
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      for (const sec of sections) {
+        const ref = db.ref(`routines/${department}/${sem}/${sec}`);
         ref.once('value', (snap) => {
           const dayData = snap.val() || {};
           DAYS_ORDER.forEach(day => {
@@ -1166,7 +1366,7 @@
           
           loadedCount++;
           // When all data is loaded, show today's day (don't shift to other days)
-          if (loadedCount === totalLoads) {
+          if (loadedCount === totalSections) {
             // Always use today's day, don't shift to days with classes
             const today = getTodayInfo();
             const dayToShow = DAYS_ORDER.includes(today.dayName) ? today.dayName : DAYS_ORDER[0];
@@ -1180,8 +1380,8 @@
             updateTeacherVersionInfo();
           }
         });
-      });
-    });
+      }
+    }
 
     // Build day scroller initially (will be updated when data loads)
     const today = getTodayInfo();
@@ -1204,8 +1404,9 @@
     if (!els.teacherDetailsVersion) return;
     // Get version from first semester that has classes
     const firstSem = Object.keys(teacherRoutineData)[0];
-    if (firstSem && versionLabels[firstSem]) {
-      els.teacherDetailsVersion.textContent = versionLabels[firstSem];
+    const dept = els.teacherDepartment?.value || currentTeacherDept || '';
+    if (firstSem && dept && versionLabels[dept] && versionLabels[dept][firstSem]) {
+      els.teacherDetailsVersion.textContent = versionLabels[dept][firstSem];
     } else {
       els.teacherDetailsVersion.textContent = '—';
     }
@@ -1345,12 +1546,13 @@
       if (els.teacherDetailsName) {
         els.teacherDetailsName.textContent = lastTeacher;
       }
-      // Load version labels for all semesters
+      // Load version labels for all semesters for this department
       const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
       semesters.forEach(sem => {
         if (db) {
-          db.ref(`versions/${sem}`).once('value', (snap) => {
-            versionLabels[sem] = snap.val() || '';
+          db.ref(`versions/${lastDept}/${sem}`).once('value', (snap) => {
+            if (!versionLabels[lastDept]) versionLabels[lastDept] = {};
+            versionLabels[lastDept][sem] = snap.val() || '';
           });
         }
       });
@@ -1358,22 +1560,11 @@
     }
   }
 
-  function initEntry() {
+  async function initEntry() {
     initLottie();
-    // Initialize landing selectors
-    // semester options already in HTML; ensure section is gated
-    populateSections(els.section, els.semester.value.trim());
-    // Force department to EEE always
-    try {
-      if (els.department) {
-        els.department.value = 'EEE';
-        els.department.addEventListener('change', () => { els.department.value = 'EEE'; });
-      }
-      if (els.departmentDisplay) {
-        els.departmentDisplay.value = 'EEE';
-        els.departmentDisplay.addEventListener('change', () => { els.departmentDisplay.value = 'EEE'; });
-      }
-    } catch (_) {}
+    
+    // Load departments first
+    await loadDepartments();
     
     // Set up global click handler for closing dropdowns
     if (!document.__dropdownCloseHandler) {
@@ -1395,11 +1586,20 @@
     // Load teachers
     loadAllTeachers();
     
+    // Initialize sections when department and semester are selected
+    if (els.department && els.semester) {
+      const dept = els.department.value || (departments[0] ? departments[0].name : 'EEE');
+      const sem = els.semester.value.trim();
+      if (dept && sem) {
+        await populateSections(els.section, sem, '', dept);
+      }
+    }
+    
     const persisted = getPersistedSelection();
     const hasVisited = localStorage.getItem('cse.hasVisited') === '1';
     if (persisted && hasVisited) {
       // Skip landing, go straight to student
-      loadStudent(persisted.semester, persisted.section);
+      await loadStudent(persisted.department, persisted.semester, persisted.section);
       setScreen('student');
     } else {
       // Show landing
@@ -1498,7 +1698,7 @@
     }
   }
   
-  function populateRoomNumbers(department) {
+  async function populateRoomNumbers(department) {
     if (!els.roomQueryThirdSelect) return;
     els.roomQueryThirdSelect.innerHTML = '<option value="">Select Room</option>';
     els.roomQueryThirdSelect.disabled = true;
@@ -1509,13 +1709,25 @@
     const allRooms = new Set();
     const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
     
+    let totalLoads = 0;
     let loadCount = 0;
-    const totalLoads = semesters.reduce((sum, sem) => sum + (semesterToSections[sem] || []).length, 0);
     
-    semesters.forEach(sem => {
-      const sections = semesterToSections[sem] || [];
-      sections.forEach(sec => {
-        db.ref(`routines/${sem}/${sec}`).once('value', (snap) => {
+    // First, count total sections
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      totalLoads += sections.length;
+    }
+    
+    if (totalLoads === 0) {
+      els.roomQueryThirdSelect.disabled = false;
+      return;
+    }
+    
+    // Then load routines
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      for (const sec of sections) {
+        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
           const dayData = snap.val() || {};
           DAYS_ORDER.forEach(day => {
             const slots = dayData[day] || [];
@@ -1536,8 +1748,8 @@
             els.roomQueryThirdSelect.disabled = false;
           }
         });
-      });
-    });
+      }
+    }
   }
 
   function populateTimeSlots() {
@@ -1561,8 +1773,8 @@
     els.roomQueryThirdSelect.disabled = false;
   }
 
-  function queryRoomByNumber(roomNumber, department) {
-    if (!db || !roomNumber) return;
+  async function queryRoomByNumber(roomNumber, department) {
+    if (!db || !roomNumber || !department) return;
     
     // All possible time slots
     const allTimeSlots = [
@@ -1576,14 +1788,26 @@
     
     const occupiedSlots = new Set();
     const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
+    
+    let totalLoads = 0;
     let loadCount = 0;
-    const totalLoads = semesters.reduce((sum, sem) => sum + (semesterToSections[sem] || []).length, 0);
+    
+    // Count total sections for this department
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      totalLoads += sections.length;
+    }
+    
+    if (totalLoads === 0) {
+      renderRoomQueryResults([], 'room', roomNumber);
+      return;
+    }
     
     // Check all days for room number search (no day filter)
-    semesters.forEach(sem => {
-      const sections = semesterToSections[sem] || [];
-      sections.forEach(sec => {
-        db.ref(`routines/${sem}/${sec}`).once('value', (snap) => {
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      for (const sec of sections) {
+        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
           const dayData = snap.val() || {};
           DAYS_ORDER.forEach(day => {
             const slots = dayData[day] || [];
@@ -1601,25 +1825,37 @@
             renderRoomQueryResults(freeSlots.map(slot => ({ room: roomNumber, timeSlot: slot })), 'room', roomNumber);
           }
         });
-      });
-    });
+      }
+    }
   }
 
-  function queryRoomByTimeSlot(timeSlot, department, selectedDay) {
-    if (!db || !timeSlot) return;
+  async function queryRoomByTimeSlot(timeSlot, department, selectedDay) {
+    if (!db || !timeSlot || !department) return;
     if (!selectedDay) selectedDay = roomQueryCurrentDay || DAYS_ORDER[0];
     
     // Get all rooms from department routines
     const allRooms = new Set();
     const occupiedRooms = new Set();
     const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
-    let loadCount = 0;
-    const totalLoads = semesters.reduce((sum, sem) => sum + (semesterToSections[sem] || []).length, 0);
     
-    semesters.forEach(sem => {
-      const sections = semesterToSections[sem] || [];
-      sections.forEach(sec => {
-        db.ref(`routines/${sem}/${sec}`).once('value', (snap) => {
+    let totalLoads = 0;
+    let loadCount = 0;
+    
+    // Count total sections for this department
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      totalLoads += sections.length;
+    }
+    
+    if (totalLoads === 0) {
+      renderRoomQueryResults([], 'timeslot', timeSlot, selectedDay);
+      return;
+    }
+    
+    for (const sem of semesters) {
+      const sections = await loadDepartmentSections(department, sem);
+      for (const sec of sections) {
+        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
           const dayData = snap.val() || {};
           const slots = dayData[selectedDay] || [];
           slots.forEach(slot => {
@@ -1638,8 +1874,8 @@
             renderRoomQueryResults(freeRooms.map(room => ({ room: room, timeSlot: timeSlot })), 'timeslot', timeSlot, selectedDay);
           }
         });
-      });
-    });
+      }
+    }
   }
 
   function renderRoomQueryResults(data, type, queryValue, selectedDay) {
@@ -1740,7 +1976,7 @@
       
       if (searchBy === 'room') {
         els.roomQueryThirdLabel.textContent = 'Room Number';
-        populateRoomNumbers(els.roomQueryDepartment?.value || 'EEE');
+        populateRoomNumbers(els.roomQueryDepartment?.value || 'EEE').catch(() => {});
       } else if (searchBy === 'timeslot') {
         els.roomQueryThirdLabel.textContent = 'Time Slot';
         populateTimeSlots();
@@ -1794,7 +2030,7 @@
           buildRoomQueryDays(roomQueryCurrentDay);
         }
         const selectedDay = roomQueryCurrentDay || DAYS_ORDER[0];
-        queryRoomByTimeSlot(value, department, selectedDay);
+        queryRoomByTimeSlot(value, department, selectedDay).catch(() => {});
       } else {
         // Hide day selector when no value selected
         if (els.roomQueryDaySelectorWrapper) els.roomQueryDaySelectorWrapper.classList.add('hidden');
@@ -1807,25 +2043,26 @@
     els.roomQueryDepartment.addEventListener('change', () => {
       const searchBy = els.roomQuerySearchBy?.value;
       if (searchBy === 'room') {
-        populateRoomNumbers(els.roomQueryDepartment.value);
+        populateRoomNumbers(els.roomQueryDepartment.value).catch(() => {});
       }
       els.roomQueryResults.innerHTML = '';
     });
   }
 
   // CR Info functionality
-  function loadCRInfo(semester, section) {
-    if (!db || !semester || !section) return;
+  function loadCRInfo(department, semester, section) {
+    if (!db || !department || !semester || !section) return;
     
     // Load CR data
-    db.ref(`cr/${semester}/${section}`).once('value', (snap) => {
+    db.ref(`cr/${department}/${semester}/${section}`).once('value', (snap) => {
       const crData = snap.val() || {};
       
       // Load section info (batch, coordinator, total students)
-      db.ref(`sectionInfo/${semester}/${section}`).once('value', (sectionSnap) => {
+      db.ref(`sectionInfo/${department}/${semester}/${section}`).once('value', (sectionSnap) => {
         const sectionInfo = sectionSnap.val() || {};
         
         renderCRInfo({
+          department,
           semester,
           section,
           crData,
@@ -1839,13 +2076,17 @@
     if (!els.crInfoResults) return;
     els.crInfoResults.innerHTML = '';
     
-    const { semester, section, crData, sectionInfo } = data;
+    const { department, semester, section, crData, sectionInfo } = data;
     
     // Block 1: Basic Info
     const block1 = document.createElement('div');
     block1.className = 'cr-info-block';
     block1.innerHTML = `
       <div class="cr-info-block-title">Basic Information</div>
+      <div class="cr-info-item">
+        <span class="cr-info-label">Department</span>
+        <span class="cr-info-value">${department || '—'}</span>
+      </div>
       <div class="cr-info-item">
         <span class="cr-info-label">Batch</span>
         <span class="cr-info-value">${sectionInfo.batch || '—'}</span>
@@ -1929,14 +2170,25 @@
   }
 
   // CR Info event handlers
+  if (els.crInfoDepartment) {
+    els.crInfoDepartment.addEventListener('change', async () => {
+      const dept = els.crInfoDepartment.value;
+      const sem = els.crInfoSemester?.value;
+      if (dept && sem) {
+        await populateSections(els.crInfoSection, sem, '', dept);
+      }
+    });
+  }
+  
   if (els.crInfoSemester) {
-    els.crInfoSemester.addEventListener('change', () => {
+    els.crInfoSemester.addEventListener('change', async () => {
+      const dept = els.crInfoDepartment?.value;
       const sem = els.crInfoSemester.value;
-      if (sem) {
-        populateSections(els.crInfoSection, sem);
+      if (dept && sem) {
+        await populateSections(els.crInfoSection, sem, '', dept);
       } else {
         els.crInfoSection.disabled = true;
-        els.crInfoSection.innerHTML = '<option value="">Select Semester first</option>';
+        els.crInfoSection.innerHTML = '<option value="">Select Department and Semester first</option>';
         els.crInfoResults.innerHTML = '';
       }
     });
@@ -1944,10 +2196,11 @@
 
   if (els.crInfoSection) {
     els.crInfoSection.addEventListener('change', () => {
+      const dept = els.crInfoDepartment?.value;
       const sem = els.crInfoSemester?.value;
       const sec = els.crInfoSection.value;
-      if (sem && sec) {
-        loadCRInfo(sem, sec);
+      if (dept && sem && sec) {
+        loadCRInfo(dept, sem, sec);
       } else {
         els.crInfoResults.innerHTML = '';
       }

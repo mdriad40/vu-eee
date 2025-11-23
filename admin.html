@@ -8,212 +8,760 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
-    <style>
-      @media (max-width: 560px) {
-        .admin-grid-3 { grid-template-columns: 1fr !important; }
-        .admin-actions { flex-wrap: wrap; }
-        .admin-actions > button { width: 100%; }
-      }
-    </style>
+    <link rel="stylesheet" href="admin-styles.css" />
 </head>
 <body>
-    <div class="screen" style="max-width:960px;margin:0 auto;">
-        <h1 class="app-title">Routine Admin</h1>
-
-        <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
-            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                <label class="field">
-                    <span>Semester</span>
-                    <select id="a_semester"></select>
-                </label>
-                <label class="field">
-                    <span>Section</span>
-                    <select id="a_section" disabled></select>
-                </label>
-                <label class="field">
-                    <span>Day</span>
-                    <select id="a_day">
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                    </select>
-                </label>
+    <!-- Admin Header -->
+    <header class="admin-header">
+        <div class="admin-header-left">
+            <div class="admin-logo">
+                <div class="admin-logo-icon">R</div>
+                <span>Routine Admin</span>
             </div>
-
-            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                <label class="field">
-                    <span>Time</span>
-                    <select id="a_time" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);">
-                        <option value="">Select Time</option>
-                        <option>9:00 - 10:25</option>
-                        <option>10:25 - 11:50</option>
-                        <option>11:50 - 1:15</option>
-                        <option>1:45 - 3:10</option>
-                        <option>3:10 - 4:35</option>
-                        <option>4:35 - 6:00</option>
-                    </select>
-                </label>
-                <label class="field">
-                    <span>Course Title</span>
-                    <input id="a_course" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                </label>
-                <label class="field">
-                    <span>Course Code</span>
-                    <input id="a_code" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                </label>
+        </div>
+        <div class="admin-header-right">
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                <span class="theme-toggle-icon sun">☀️</span>
+                <span class="theme-toggle-icon moon">🌙</span>
+                <span class="theme-toggle-slider"></span>
+            </button>
+            <div class="user-avatar" id="userAvatar" title="Admin User">A</div>
+        </div>
+    </header>
+    
+    <div class="admin-layout">
+        <!-- Mobile Menu Toggle -->
+        <div class="menu-toggle" id="menuToggle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </div>
+        <!-- Menu Overlay (Mobile) -->
+        <div class="menu-overlay" id="menuOverlay"></div>
+        <!-- Sidebar Menu -->
+        <div class="admin-sidebar" id="adminSidebar">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px;">Navigation Panel</h2>
+                <button class="menu-close" id="menuClose" style="display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:4px;font-size:24px;border-radius:8px;transition:background 0.2s ease;" onmouseover="this.style.background='var(--outline)'" onmouseout="this.style.background='none'">&times;</button>
             </div>
+            <ul class="admin-menu">
+                <li class="admin-menu-item active" data-page="dashboard">
+                    <span class="admin-menu-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </li>
+                <li class="admin-menu-item" data-page="all-info">
+                    <span class="admin-menu-item-icon">✏️</span>
+                    <span>All Info</span>
+                </li>
+                <li class="admin-menu-item" data-page="department-add">
+                    <span class="admin-menu-item-icon">🏢</span>
+                    <span>Department Add</span>
+                </li>
+                <li class="admin-menu-item" data-page="cr-info">
+                    <span class="admin-menu-item-icon">👥</span>
+                    <span>CR Info</span>
+                </li>
+                <li class="admin-menu-item" data-page="section-info">
+                    <span class="admin-menu-item-icon">📋</span>
+                    <span>Section Info</span>
+                </li>
+                <li class="admin-menu-item" data-page="routine-version">
+                    <span class="admin-menu-item-icon">🔄</span>
+                    <span>Routine Version</span>
+                </li>
+                <li class="admin-menu-item" data-page="teacher-info">
+                    <span class="admin-menu-item-icon">👨‍🏫</span>
+                    <span>Teacher Info</span>
+                </li>
+                <li class="admin-menu-item" data-page="full-info">
+                    <span class="admin-menu-item-icon">📝</span>
+                    <span>Day Slot</span>
+                </li>
+            </ul>
+        </div>
 
-            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                <label class="field">
-                    <span>Teacher</span>
-                    <div class="autocomplete-container" style="position:relative;">
-                        <input id="a_teacher" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" autocomplete="off" spellcheck="false" />
-                        <div id="a_teacher_suggestions" class="autocomplete-dropdown hidden"></div>
+        <!-- Main Content Area -->
+        <div class="admin-content">
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="admin-page">
+                <h1 class="app-title" style="margin-bottom:8px;">Dashboard</h1>
+                <p style="color:var(--muted);font-size:14px;margin-bottom:24px;">Overview of user analytics and statistics</p>
+                <div class="dashboard-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:20px;">
+                    <div class="dashboard-card card" style="padding:24px;position:relative;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                            <div>
+                                <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px;">Total Users</div>
+                                <div id="dashboard-total-users" style="font-size:32px;font-weight:700;color:var(--text);font-family:'Poppins',sans-serif;">0</div>
+                            </div>
+                            <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(108,99,255,0.2),rgba(158,140,255,0.2));display:flex;align-items:center;justify-content:center;font-size:24px;">👥</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--success);">
+                            <span>↑</span>
+                            <span id="dashboard-total-users-growth">0%</span>
+                            <span style="color:var(--muted);">vs last month</span>
+                        </div>
                     </div>
-                    <div id="a_teacher_new_form" class="hidden" style="margin-top:12px;padding:12px;background:var(--card);border:1px solid var(--outline);border-radius:12px;display:grid;gap:12px;">
-                        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Add New Teacher</div>
-                        <label class="field">
-                            <span>Full Name</span>
-                            <input id="a_teacher_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                        </label>
-                        <label class="field">
-                            <span>Contact No</span>
-                            <input id="a_teacher_contact" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                        </label>
-                        <label class="field">
-                            <span>Email</span>
-                            <input id="a_teacher_mail" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                        </label>
-                        <label class="field">
-                            <span>Designation</span>
-                            <input id="a_teacher_designation" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                        </label>
-                        <button id="a_teacher_save" class="primary-btn small">Save Teacher</button>
-                        <div id="a_teacher_status" class="soft"></div>
+                    
+                    <div class="dashboard-card card" style="padding:24px;position:relative;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                            <div>
+                                <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px;">Total Active Users</div>
+                                <div id="dashboard-active-users" style="font-size:32px;font-weight:700;color:var(--text);font-family:'Poppins',sans-serif;">0</div>
+                            </div>
+                            <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(40,167,69,0.2),rgba(46,204,113,0.2));display:flex;align-items:center;justify-content:center;font-size:24px;">✓</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--success);">
+                            <span>↑</span>
+                            <span id="dashboard-active-users-growth">0%</span>
+                            <span style="color:var(--muted);">vs last month</span>
+                        </div>
                     </div>
-                </label>
-                <label class="field">
-                    <span>Room</span>
-                    <input id="a_room" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                </label>
-                <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
-                    <button id="btn_add" class="primary-btn">Add / Update</button>
-                    <button id="btn_delete" class="ghost-btn">Delete Selected</button>
-                    <button id="btn_publish" class="primary-btn small">Publish Day</button>
+                    
+                    <div class="dashboard-card card" style="padding:24px;position:relative;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                            <div>
+                                <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px;">Today's Total Users</div>
+                                <div id="dashboard-today-users" style="font-size:32px;font-weight:700;color:var(--text);font-family:'Poppins',sans-serif;">0</div>
+                            </div>
+                            <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(255,193,7,0.2),rgba(255,152,0,0.2));display:flex;align-items:center;justify-content:center;font-size:24px;">📅</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--success);">
+                            <span>↑</span>
+                            <span id="dashboard-today-users-growth">0%</span>
+                            <span style="color:var(--muted);">vs yesterday</span>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card card" style="padding:24px;position:relative;overflow:hidden;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+                            <div>
+                                <div style="font-size:13px;color:var(--muted);font-weight:500;margin-bottom:8px;">Real-time Active Users</div>
+                                <div id="dashboard-realtime-users" style="font-size:32px;font-weight:700;color:var(--text);font-family:'Poppins',sans-serif;">0</div>
+                            </div>
+                            <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(108,99,255,0.2),rgba(158,140,255,0.2));display:flex;align-items:center;justify-content:center;font-size:24px;">⚡</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accent);">
+                            <span style="width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;display:inline-block;"></span>
+                            <span>Live</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <div class="card" style="padding:12px;display:grid;gap:12px;">
-                <div style="font-size:12px;color:var(--muted);">CR / Co-CR (per semester and section)</div>
-                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                    <label class="field">
-                        <span>CR Name</span>
-                        <input id="a_cr1_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                    <label class="field">
-                        <span>CR ID</span>
-                        <input id="a_cr1_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                    <label class="field">
-                        <span>CR Phone</span>
-                        <input id="a_cr1_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                </div>
-                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                    <label class="field">
-                        <span>Co-CR Name</span>
-                        <input id="a_cr2_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                    <label class="field">
-                        <span>Co-CR ID</span>
-                        <input id="a_cr2_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                    <label class="field">
-                        <span>Co-CR Phone</span>
-                        <input id="a_cr2_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                </div>
-                <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
-                    <button id="btn_save_cr" class="primary-btn small">Save CRs</button>
-                </div>
-                <div id="a_cr_status" class="soft"></div>
-            </div>
-
-            <div class="card" style="padding:12px;display:grid;gap:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <div style="font-size:14px;color:var(--text);font-weight:600;">Section Information</div>
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
-                        <span style="font-size:12px;color:var(--muted);">Show Form</span>
-                        <input type="checkbox" id="sectionInfoToggle" style="width:48px;height:24px;cursor:pointer;accent-color:var(--primary);" />
-                    </label>
-                </div>
-                <div id="sectionInfoForm" class="hidden" style="display:grid;gap:12px;margin-top:8px;">
-                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+            
+            <!-- All Info Edit Page (Original Routine Admin) -->
+            <div id="page-all-info" class="admin-page">
+                <h1 class="app-title">Routine Admin</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                         <label class="field">
-                            <span>Batch</span>
-                            <input id="a_batch" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            <span>Department</span>
+                            <select id="a_department"></select>
                         </label>
                         <label class="field">
-                            <span>Total Students</span>
-                            <input id="a_total_students" type="number" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            <span>Semester</span>
+                            <select id="a_semester"></select>
+                        </label>
+                        <label class="field">
+                            <span>Section</span>
+                            <select id="a_section" disabled></select>
                         </label>
                     </div>
                     <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                         <label class="field">
-                            <span>Coordinator Name</span>
-                            <input id="a_coordinator_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            <span>Day</span>
+                            <select id="a_day">
+                                <option>Saturday</option>
+                                <option>Sunday</option>
+                                <option>Monday</option>
+                                <option>Tuesday</option>
+                                <option>Wednesday</option>
+                                <option>Thursday</option>
+                            </select>
                         </label>
                         <label class="field">
-                            <span>Coordinator Phone</span>
-                            <input id="a_coordinator_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            <span>Time</span>
+                            <select id="a_time" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);">
+                                <option value="">Select Time</option>
+                                <option>9:00 - 10:25</option>
+                                <option>10:25 - 11:50</option>
+                                <option>11:50 - 1:15</option>
+                                <option>1:45 - 3:10</option>
+                                <option>3:10 - 4:35</option>
+                                <option>4:35 - 6:00</option>
+                            </select>
                         </label>
                         <label class="field">
-                            <span>Coordinator Email</span>
-                            <input id="a_coordinator_email" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            <span>Course Title</span>
+                            <input id="a_course" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
                         </label>
+                    </div>
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Course Code</span>
+                            <input id="a_code" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Teacher</span>
+                            <div class="autocomplete-container" style="position:relative;">
+                                <input id="a_teacher" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" autocomplete="off" spellcheck="false" />
+                                <div id="a_teacher_suggestions" class="autocomplete-dropdown hidden"></div>
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span>Room</span>
+                            <input id="a_room" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                    </div>
+                    <div id="a_teacher_new_form" class="hidden" style="margin-top:12px;padding:12px;background:var(--card);border:1px solid var(--outline);border-radius:12px;display:grid;gap:12px;width:100%;">
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Add New Teacher</div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;">
+                            <label class="field">
+                                <span>Short Form</span>
+                                <input id="a_teacher_short" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                            </label>
+                            <label class="field">
+                                <span>Full Name</span>
+                                <input id="a_teacher_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                            </label>
+                            <label class="field">
+                                <span>Contact No</span>
+                                <input id="a_teacher_contact" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                            </label>
+                            <label class="field">
+                                <span>Email</span>
+                                <input id="a_teacher_mail" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                            </label>
+                            <label class="field">
+                                <span>Designation</span>
+                                <input id="a_teacher_designation" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                            </label>
+                        </div>
+                        <button id="a_teacher_save" class="primary-btn small">Save Teacher</button>
+                        <div id="a_teacher_status" class="soft"></div>
                     </div>
                     <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
-                        <button id="btn_save_section_info" class="primary-btn small">Save Section Info</button>
-                        <button id="btn_delete_section_info" class="ghost-btn">Delete</button>
+                        <button id="btn_add" class="primary-btn">Add / Update</button>
+                        <button id="btn_delete" class="ghost-btn">Delete Selected</button>
+                        <button id="btn_publish" class="primary-btn small">Publish Day</button>
                     </div>
-                    <div id="a_section_info_status" class="soft"></div>
+                    <div class="card" style="padding:12px;border:1px dashed var(--outline);">
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Day Slots</div>
+                        <ul id="a_list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
+                        <div id="a_status" class="soft" style="margin-top:8px;"></div>
+                    </div>
+
+                    <!-- CR / Co-CR Management -->
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div style="font-size:12px;color:var(--muted);">CR / Co-CR (per semester and section)</div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>CR Name</span>
+                                <input id="a_cr1_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>CR ID</span>
+                                <input id="a_cr1_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>CR Phone</span>
+                                <input id="a_cr1_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Co-CR Name</span>
+                                <input id="a_cr2_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Co-CR ID</span>
+                                <input id="a_cr2_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Co-CR Phone</span>
+                                <input id="a_cr2_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                            <button id="a_btn_save_cr" class="primary-btn small">Save CRs</button>
+                        </div>
+                        <div id="a_cr_status" class="soft"></div>
+                    </div>
+
+                    <!-- Section Information -->
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <div style="font-size:14px;color:var(--text);font-weight:600;">Section Information</div>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;">
+                                <span style="font-size:12px;color:var(--muted);">Show Form</span>
+                                <input type="checkbox" id="a_sectionInfoToggle" style="width:48px;height:24px;cursor:pointer;accent-color:var(--primary);" />
+                            </label>
+                        </div>
+                        <div id="a_sectionInfoForm" class="hidden" style="display:grid;gap:12px;margin-top:8px;">
+                            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+                                <label class="field">
+                                    <span>Batch</span>
+                                    <input id="a_batch" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                                <label class="field">
+                                    <span>Total Students</span>
+                                    <input id="a_total_students" type="number" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                            </div>
+                            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                                <label class="field">
+                                    <span>Coordinator Name</span>
+                                    <input id="a_coordinator_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                                <label class="field">
+                                    <span>Coordinator Phone</span>
+                                    <input id="a_coordinator_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                                <label class="field">
+                                    <span>Coordinator Email</span>
+                                    <input id="a_coordinator_email" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                            </div>
+                            <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                                <button id="a_btn_save_section_info" class="primary-btn small">Save Section Info</button>
+                                <button id="a_btn_delete_section_info" class="ghost-btn">Delete</button>
+                            </div>
+                            <div id="a_section_info_status" class="soft"></div>
+                        </div>
+                    </div>
+
+                    <!-- Routine Version -->
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div style="font-size:12px;color:var(--muted);">Routine Version</div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Version Label (shown on app)</span>
+                                <input id="a_version" placeholder="e.g., Fall 2025 v2" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                                <button id="a_btn_save_version" class="primary-btn small">Save Version</button>
+                            </div>
+                        </div>
+                        <div id="a_version_status" class="soft"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card" style="padding:12px;display:grid;gap:12px;">
-                <div style="font-size:12px;color:var(--muted);">Routine Version</div>
-                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-                    <label class="field">
-                        <span>Version Label (shown on app)</span>
-                        <input id="a_version" placeholder="e.g., Fall 2025 v2" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
-                    </label>
-                    <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
-                        <button id="btn_save_version" class="primary-btn small">Save Version</button>
+            <!-- Department Add Page -->
+            <div id="page-department-add" class="admin-page">
+                <h1 class="app-title">Department Management</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:16px;">
+                    <div>
+                        <label class="field">
+                            <span>Add New Department</span>
+                            <div style="display:flex;gap:8px;">
+                                <input id="new_department_name" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" placeholder="Enter department name (e.g., EEE, CSE)" />
+                                <button id="btn_add_department" class="primary-btn">Add Department</button>
+                            </div>
+                        </label>
+                        <div id="department_status" class="soft" style="margin-top:8px;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;">Departments (Drag to reorder - top items appear first in dropdowns)</div>
+                        <ul id="department_list" class="department-list"></ul>
+                    </div>
+                    <div>
+                        <label class="field">
+                            <span>Select Department to Manage Sections</span>
+                            <select id="dept_section_department"></select>
+                        </label>
+                        <label class="field">
+                            <span>Select Semester</span>
+                            <select id="dept_section_semester"></select>
+                        </label>
+                        <div style="margin-top:12px;">
+                            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Sections for Selected Department & Semester</div>
+                            <div id="section_list_display" class="section-list"></div>
+                            <div style="margin-top:12px;">
+                                <label class="field">
+                                    <span>Add Section</span>
+                                    <div style="display:flex;gap:8px;">
+                                        <input id="new_section_name" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" placeholder="Enter section name (e.g., A, B, C)" />
+                                        <button id="btn_add_section" class="primary-btn small">Add Section</button>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="section_status" class="soft" style="margin-top:8px;"></div>
+                        </div>
                     </div>
                 </div>
-                <div id="a_version_status" class="soft"></div>
             </div>
 
-            <div class="card" style="padding:12px;border:1px dashed var(--outline);">
-                <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Day Slots</div>
-                <ul id="a_list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
-                <div id="a_status" class="soft" style="margin-top:8px;"></div>
+            <!-- CR Info Edit Page -->
+            <div id="page-cr-info" class="admin-page">
+                <h1 class="app-title">CR Info</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Department</span>
+                            <select id="cr_dept"></select>
+                        </label>
+                        <label class="field">
+                            <span>Semester</span>
+                            <select id="cr_semester"></select>
+                        </label>
+                        <label class="field">
+                            <span>Section</span>
+                            <select id="cr_section" disabled></select>
+                        </label>
+                    </div>
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div style="font-size:12px;color:var(--muted);">CR / Co-CR (per semester and section)</div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>CR Name</span>
+                                <input id="cr_cr1_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>CR ID</span>
+                                <input id="cr_cr1_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>CR Phone</span>
+                                <input id="cr_cr1_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Co-CR Name</span>
+                                <input id="cr_cr2_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Co-CR ID</span>
+                                <input id="cr_cr2_id" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Co-CR Phone</span>
+                                <input id="cr_cr2_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                            <button id="btn_save_cr" class="primary-btn small">Save CRs</button>
+                        </div>
+                        <div id="cr_status" class="soft"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Info Edit Page -->
+            <div id="page-section-info" class="admin-page">
+                <h1 class="app-title">Section Info</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Department</span>
+                            <select id="sec_info_dept"></select>
+                        </label>
+                        <label class="field">
+                            <span>Semester</span>
+                            <select id="sec_info_semester"></select>
+                        </label>
+                        <label class="field">
+                            <span>Section</span>
+                            <select id="sec_info_section" disabled></select>
+                        </label>
+                    </div>
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Batch</span>
+                                <input id="sec_info_batch" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Total Students</span>
+                                <input id="sec_info_total_students" type="number" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Coordinator Name</span>
+                                <input id="sec_info_coordinator_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Coordinator Phone</span>
+                                <input id="sec_info_coordinator_phone" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <label class="field">
+                                <span>Coordinator Email</span>
+                                <input id="sec_info_coordinator_email" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                        </div>
+                        <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                            <button id="btn_save_section_info" class="primary-btn small">Save Section Info</button>
+                            <button id="btn_delete_section_info" class="ghost-btn">Delete</button>
+                        </div>
+                        <div id="sec_info_status" class="soft"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Routine Version Update Page -->
+            <div id="page-routine-version" class="admin-page">
+                <h1 class="app-title">Routine Version Update</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Department</span>
+                            <select id="version_dept"></select>
+                        </label>
+                        <label class="field">
+                            <span>Semester</span>
+                            <select id="version_semester"></select>
+                        </label>
+                    </div>
+                    <div class="card" style="padding:12px;display:grid;gap:12px;">
+                        <div style="font-size:12px;color:var(--muted);">Routine Version</div>
+                        <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                            <label class="field">
+                                <span>Version Label (shown on app)</span>
+                                <input id="version_label" placeholder="e.g., Fall 2025 v2" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                            </label>
+                            <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                                <button id="btn_save_version" class="primary-btn small">Save Version</button>
+                            </div>
+                        </div>
+                        <div id="version_status" class="soft"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher Info Edit Page -->
+            <div id="page-teacher-info" class="admin-page">
+                <h1 class="app-title">Teacher Info</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div style="margin-bottom:12px;">
+                        <label class="field">
+                            <span>Search/Select Teacher</span>
+                            <div class="autocomplete-container" style="position:relative;">
+                                <input id="teacher_edit_search" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" autocomplete="off" spellcheck="false" placeholder="Enter teacher short form (e.g., MRH)" />
+                                <div id="teacher_edit_suggestions" class="autocomplete-dropdown hidden"></div>
+                            </div>
+                            <div id="teacher_edit_new_form" class="hidden" style="margin-top:12px;padding:12px;background:var(--card);border:1px solid var(--outline);border-radius:12px;display:grid;gap:12px;width:100%;">
+                                <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Add New Teacher</div>
+                                <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;">
+                                    <label class="field">
+                                        <span>Short Form</span>
+                                        <input id="teacher_edit_new_short" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                                    </label>
+                                    <label class="field">
+                                        <span>Full Name</span>
+                                        <input id="teacher_edit_new_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                                    </label>
+                                    <label class="field">
+                                        <span>Contact No</span>
+                                        <input id="teacher_edit_new_contact" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                                    </label>
+                                    <label class="field">
+                                        <span>Email</span>
+                                        <input id="teacher_edit_new_mail" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                                    </label>
+                                    <label class="field">
+                                        <span>Designation</span>
+                                        <input id="teacher_edit_new_designation" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" />
+                                    </label>
+                                </div>
+                                <button id="teacher_edit_new_save" class="primary-btn small">Save Teacher</button>
+                                <div id="teacher_edit_new_status" class="soft"></div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="teacher_edit_form" class="hidden">
+                        <div class="card" style="padding:12px;display:grid;gap:12px;">
+                            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+                                <label class="field">
+                                    <span>Short Form</span>
+                                    <input id="teacher_edit_short" readonly style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);opacity:0.7;" />
+                                </label>
+                                <label class="field">
+                                    <span>Full Name</span>
+                                    <input id="teacher_edit_name" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                            </div>
+                            <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                                <label class="field">
+                                    <span>Contact No</span>
+                                    <input id="teacher_edit_contact" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                                <label class="field">
+                                    <span>Email</span>
+                                    <input id="teacher_edit_mail" type="email" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                                <label class="field">
+                                    <span>Designation</span>
+                                    <input id="teacher_edit_designation" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                                </label>
+                            </div>
+                            <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                                <button id="btn_update_teacher" class="primary-btn">Update Teacher</button>
+                                <button id="btn_delete_teacher" class="ghost-btn">Delete Teacher</button>
+                            </div>
+                            <div id="teacher_edit_status" class="soft"></div>
+                        </div>
+                    </div>
+                    <div id="teacher_list_container" style="margin-top:16px;">
+                        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;">All Teachers</div>
+                        <div id="teacher_list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full Info Edit Page (Same as All Info but more comprehensive) -->
+            <div id="page-full-info" class="admin-page">
+                <h1 class="app-title">Day Slot</h1>
+                <div class="card" style="padding:16px;margin-top:12px;display:grid;gap:12px;">
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Department</span>
+                            <select id="full_dept"></select>
+                        </label>
+                        <label class="field">
+                            <span>Semester</span>
+                            <select id="full_semester"></select>
+                        </label>
+                        <label class="field">
+                            <span>Section</span>
+                            <select id="full_section" disabled></select>
+                        </label>
+                    </div>
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Day</span>
+                            <select id="full_day">
+                                <option>Saturday</option>
+                                <option>Sunday</option>
+                                <option>Monday</option>
+                                <option>Tuesday</option>
+                                <option>Wednesday</option>
+                                <option>Thursday</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Time</span>
+                            <select id="full_time">
+                                <option value="">Select Time</option>
+                                <option>9:00 - 10:25</option>
+                                <option>10:25 - 11:50</option>
+                                <option>11:50 - 1:15</option>
+                                <option>1:45 - 3:10</option>
+                                <option>3:10 - 4:35</option>
+                                <option>4:35 - 6:00</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span>Course Title</span>
+                            <input id="full_course" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                    </div>
+                    <div class="admin-grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                        <label class="field">
+                            <span>Course Code</span>
+                            <input id="full_code" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                        <label class="field">
+                            <span>Teacher</span>
+                            <div class="autocomplete-container" style="position:relative;">
+                                <input id="full_teacher" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);width:100%;" autocomplete="off" spellcheck="false" />
+                                <div id="full_teacher_suggestions" class="autocomplete-dropdown hidden"></div>
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span>Room</span>
+                            <input id="full_room" style="padding:12px;border-radius:12px;border:1px solid var(--outline);background:#171717;color:var(--text);" />
+                        </label>
+                    </div>
+                    <div class="admin-actions" style="display:flex;align-items:flex-end;gap:8px;">
+                        <button id="btn_full_add" class="primary-btn">Add / Update</button>
+                        <button id="btn_full_delete" class="ghost-btn">Delete Selected</button>
+                        <button id="btn_full_publish" class="primary-btn small">Publish Day</button>
+                    </div>
+                    <div class="card" style="padding:12px;border:1px dashed var(--outline);">
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Day Slots</div>
+                        <ul id="full_list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;"></ul>
+                        <div id="full_status" class="soft" style="margin-top:8px;"></div>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div style="margin-top:16px;">
-            <a href="index.html" class="ghost-btn" style="text-decoration: none;">Back to App</a>
-        </div>
+    <div style="margin-top:16px;text-align:center;padding:0 16px;">
+        <a href="index.html" class="ghost-btn" style="text-decoration: none;display:none;">Back to App</a>
     </div>
 
     <!-- Firebase SDK (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics-compat.js"></script>
+    <script>
+      // Admin Theme Toggle (separate from main app theme)
+      (function() {
+        const themeToggle = document.getElementById('themeToggle');
+        const currentTheme = localStorage.getItem('adminTheme') || 'dark';
+        document.documentElement.setAttribute('data-admin-theme', currentTheme);
+        
+        if (themeToggle) {
+          themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-admin-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-admin-theme', newTheme);
+            localStorage.setItem('adminTheme', newTheme);
+          });
+        }
+      })();
+      
+      // Mobile menu toggle
+      (function() {
+        const menuToggle = document.getElementById('menuToggle');
+        const menuClose = document.getElementById('menuClose');
+        const adminSidebar = document.getElementById('adminSidebar');
+        const menuOverlay = document.getElementById('menuOverlay');
+        
+        function openMenu() {
+          if (adminSidebar) adminSidebar.classList.add('open');
+          if (menuOverlay) menuOverlay.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMenu() {
+          if (adminSidebar) adminSidebar.classList.remove('open');
+          if (menuOverlay) menuOverlay.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+        
+        if (menuToggle) {
+          menuToggle.addEventListener('click', openMenu);
+        }
+        if (menuClose) {
+          menuClose.addEventListener('click', closeMenu);
+        }
+        if (menuOverlay) {
+          menuOverlay.addEventListener('click', closeMenu);
+        }
+        
+        // Close menu when clicking a menu item (mobile)
+        const menuItems = document.querySelectorAll('.admin-menu-item');
+        menuItems.forEach(item => {
+          item.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+              closeMenu();
+            }
+          });
+        });
+        
+        // Close menu on window resize if desktop
+        window.addEventListener('resize', () => {
+          if (window.innerWidth > 768) {
+            closeMenu();
+          }
+        });
+      })();
+    </script>
     <script src="admin.js"></script>
 </body>
 </html>
-
-

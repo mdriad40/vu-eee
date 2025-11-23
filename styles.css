@@ -259,6 +259,48 @@ body::-webkit-scrollbar {
     margin-bottom: 16px;
 }
 
+.room-query-selection {
+    gap: 16px;
+}
+
+.room-query-selection .control {
+    flex: 0 0 calc(50% - 8px);
+}
+
+.room-query-selection #roomQueryThirdControl {
+    flex: 0 0 100%;
+}
+
+.room-query-controls {
+    flex-direction: column;
+    gap: 20px;
+}
+
+.room-query-controls-row {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.room-query-controls-row .control {
+    flex: 1;
+    min-width: 220px;
+}
+
+.room-query-third-control {
+    width: 100%;
+}
+
+@media (max-width: 520px) {
+    .room-query-controls-row {
+        flex-direction: column;
+    }
+    .room-query-controls-row .control {
+        min-width: 100%;
+    }
+}
+
 .selection-controls .teacher-search-wrapper {
     flex: 0 0 calc(65% - 8px);
 }
