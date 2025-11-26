@@ -1,39 +1,25 @@
 (function () {
-  const PRIMARY_COLOR = '#6C63FF';
-  const DAYS_ORDER = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  // Use modules if available, otherwise fallback to local definitions
+  const PRIMARY_COLOR = window.AppConfig?.PRIMARY_COLOR || '#6C63FF';
+  const DAYS_ORDER = window.AppConfig?.DAYS_ORDER || ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday'];
+  const DEPARTMENT_LOCK_MODE = window.AppConfig?.DEPARTMENT_LOCK_MODE || 'yes';
+  const db = window.AppConfig?.db || (window.firebase ? window.firebase.database() : null);
+
+  // Use state from module if available, otherwise create local
+  const routineData = window.AppState?.routineData || {};
+  const crDetails = window.AppState?.crDetails || {};
+  const versionLabels = window.AppState?.versionLabels || {};
+  let departments = window.AppState?.departments || [];
+  let departmentSections = window.AppState?.departmentSections || {};
   
-  // Department Lock Configuration
-  // Set to 'yes' to disable other departments (they cannot be selected)
-  // Set to 'no' to allow selection but force back to EEE (other departments are selectable but will revert)
-  const DEPARTMENT_LOCK_MODE = 'yes'; // Change this to 'yes' or 'no' as needed
-
-  // Firebase init (Compat SDK included via index.html)
-  const firebaseConfig = {
-    apiKey: "AIzaSyBJDhjAO85qtK4SexkvvLIgvs36i3Chyf4",
-    authDomain: "eee-routine.firebaseapp.com",
-    databaseURL: "https://eee-routine-default-rtdb.firebaseio.com",
-    projectId: "eee-routine",
-    storageBucket: "eee-routine.firebasestorage.app",
-    messagingSenderId: "1001291186233",
-    appId: "1:1001291186233:web:801a065bc6f3304e1d8de8",
-    measurementId: "G-16X655Y9KQ"
-  };
-  if (window.firebase && !window.firebase.apps?.length) {
-    window.firebase.initializeApp(firebaseConfig);
+  // Sync with AppState if it exists
+  if (window.AppState) {
+    window.AppState.routineData = routineData;
+    window.AppState.crDetails = crDetails;
+    window.AppState.versionLabels = versionLabels;
+    window.AppState.departments = departments;
+    window.AppState.departmentSections = departmentSections;
   }
-  const db = window.firebase ? window.firebase.database() : null;
-
-  // Live routine dataset keyed by department->semester->section->day (filled from RTDB or cache)
-  const routineData = {};
-
-  // Global state for departments and sections
-  let departments = [];
-  let departmentSections = {}; // { dept: { semester: [sections] } }
-
-  // Live CR details loaded from DB (department->semester->section)
-  const crDetails = {};
-  // Live version labels loaded from DB (department->semester)
-  const versionLabels = {};
 
   const els = {
     screens: {
@@ -476,6 +462,51 @@
     return wrapper;
   }
 
+  function refreshCustomDropdown(selectElement) {
+    if (!selectElement) return;
+    const customWrapper = selectElement.closest('.custom-dropdown');
+    if (!customWrapper) return;
+    const button = customWrapper.querySelector('.custom-dropdown-button');
+    const menu = customWrapper.querySelector('.custom-dropdown-menu');
+    if (!button || !menu) return;
+
+    button.textContent = getButtonText(selectElement);
+    if (selectElement.disabled) {
+      button.classList.add('disabled');
+    } else {
+      button.classList.remove('disabled');
+    }
+
+    menu.innerHTML = '';
+    Array.from(selectElement.options).forEach((option, index) => {
+      if (isPlaceholderOption(option)) return;
+
+      const item = document.createElement('div');
+      item.className = 'custom-dropdown-item';
+      if (option.selected && !isPlaceholderOption(option)) {
+        item.classList.add('selected');
+      }
+      if (option.disabled) item.classList.add('disabled');
+      item.textContent = option.textContent;
+      item.dataset.value = option.value;
+      item.dataset.index = index;
+
+      item.addEventListener('click', (e) => {
+        if (option.disabled) return;
+        e.stopPropagation();
+        selectElement.selectedIndex = index;
+        selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+        button.textContent = option.textContent;
+        hideDropdown(menu);
+        button.classList.remove('open');
+        menu.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+      });
+
+      menu.appendChild(item);
+    });
+  }
+
   function lockDepartmentSelect(selectElement) {
     if (!selectElement) return;
     
@@ -586,6 +617,8 @@
   let teacherRoutineData = {}; // { semester: { section: { day: [slots] } } }
   let currentTeacherDay = '';
   let activeTeacherDbRef = null;
+  let teacherDataLoaded = false; // Track if teacher data is already loaded
+  let loadedTeacherKey = ''; // Track which teacher+dept combination is loaded
 
   // Load departments from Firebase
   async function loadDepartments() {
@@ -693,52 +726,46 @@
     } catch (_) {}
   }
 
-  function persistSelection(department, semester, section) {
+  const persistSelection = window.AppUtils?.persistSelection || function(department, semester, section) {
     localStorage.setItem('cse.department', department);
     localStorage.setItem('cse.semester', semester);
     localStorage.setItem('cse.section', section);
     localStorage.setItem('cse.hasVisited', '1');
-  }
+  };
 
-  function getPersistedSelection() {
+  const getPersistedSelection = window.AppUtils?.getPersistedSelection || function() {
     const department = localStorage.getItem('cse.department');
     const semester = localStorage.getItem('cse.semester');
     const section = localStorage.getItem('cse.section');
     return department && semester && section ? { department, semester, section } : null;
-  }
+  };
 
-  function getTodayInfo() {
+  // Use utility functions from module if available
+  const getTodayInfo = window.AppUtils?.getTodayInfo || function() {
     const now = new Date();
-    const wd = now.getDay(); // 0 Sun .. 6 Sat
-    // Map to our Saturday-first order index (Friday removed)
+    const wd = now.getDay();
     const map = { 0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday' };
     const dayName = map[wd];
     const dd = String(now.getDate()).padStart(2, '0');
     const short = now.toLocaleString(undefined, { weekday: 'short' });
     return { dayName, label: `${short} ${dd}` };
-  }
+  };
 
-  function getDateForDay(dayName) {
+  const getDateForDay = window.AppUtils?.getDateForDay || function(dayName) {
     const now = new Date();
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const currentDay = now.getDay();
     const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Saturday': 6 };
     const targetDay = dayMap[dayName];
-    
-    // Calculate days to add to get to the target day
     let daysToAdd = targetDay - currentDay;
-    
-    // If the target day has already passed this week, show next week's date
     if (daysToAdd < 0) {
       daysToAdd += 7;
     }
-    
     const targetDate = new Date(now);
     targetDate.setDate(now.getDate() + daysToAdd);
     return String(targetDate.getDate()).padStart(2, '0');
-  }
+  };
 
-  // Map internal semester codes (1-1) to displayed labels (1st, 2nd, ...)
-  function semLabel(code) {
+  const semLabel = window.AppUtils?.semLabel || function(code) {
     const map = {
       '1-1': '1st', '1-2': '2nd',
       '2-1': '3rd', '2-2': '4th',
@@ -746,7 +773,13 @@
       '4-1': '7th', '4-2': '8th'
     };
     return map[code] || code || '';
-  }
+  };
+  
+  const parseTime = window.AppUtils?.parseTime || function(timeStr) {
+    const m = timeStr.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return 0;
+    return parseInt(m[1],10) * 60 + parseInt(m[2],10);
+  };
 
   // Landing: Get Schedule
   els.getSchedule.addEventListener('click', async () => {
@@ -1016,40 +1049,7 @@
       els.departmentDisplay.addEventListener('change', onStudentDepartmentChange);
       els.departmentDisplay.__wired = true;
     }
-    // Update custom dropdown if it exists
-    const customWrapper = select.closest('.custom-dropdown');
-    if (customWrapper) {
-      const button = customWrapper.querySelector('.custom-dropdown-button');
-      const menu = customWrapper.querySelector('.custom-dropdown-menu');
-      if (button && menu) {
-        const selectedOption = select.options[select.selectedIndex];
-        button.textContent = selectedOption ? selectedOption.textContent : '';
-        menu.innerHTML = '';
-        Array.from(select.options).forEach((option, index) => {
-          const item = document.createElement('div');
-          item.className = 'custom-dropdown-item';
-          if (option.selected) item.classList.add('selected');
-          if (option.disabled) item.classList.add('disabled');
-          item.textContent = option.textContent;
-          item.dataset.value = option.value;
-          item.dataset.index = index;
-          
-          item.addEventListener('click', (e) => {
-            if (option.disabled) return;
-            e.stopPropagation();
-            select.selectedIndex = index;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            button.textContent = option.textContent;
-            hideDropdown(menu);
-            button.classList.remove('open');
-            menu.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
-            item.classList.add('selected');
-          });
-          
-          menu.appendChild(item);
-        });
-      }
-    }
+    refreshCustomDropdown(select);
   }
 
   async function populateSections(select, semester, selectedSection, department) {
@@ -1081,45 +1081,7 @@
       select.addEventListener('change', onStudentSectionChange);
       select.__wired = true;
     }
-    // Update custom dropdown if it exists
-    const customWrapper = select.closest('.custom-dropdown');
-    if (customWrapper) {
-      const button = customWrapper.querySelector('.custom-dropdown-button');
-      const menu = customWrapper.querySelector('.custom-dropdown-menu');
-      if (button && menu) {
-        const selectedOption = select.options[select.selectedIndex];
-        button.textContent = selectedOption ? selectedOption.textContent : '';
-        if (select.disabled) {
-          button.classList.add('disabled');
-        } else {
-          button.classList.remove('disabled');
-        }
-        menu.innerHTML = '';
-        Array.from(select.options).forEach((option, index) => {
-          const item = document.createElement('div');
-          item.className = 'custom-dropdown-item';
-          if (option.selected) item.classList.add('selected');
-          if (option.disabled) item.classList.add('disabled');
-          item.textContent = option.textContent;
-          item.dataset.value = option.value;
-          item.dataset.index = index;
-          
-          item.addEventListener('click', (e) => {
-            if (option.disabled) return;
-            e.stopPropagation();
-            select.selectedIndex = index;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            button.textContent = option.textContent;
-            hideDropdown(menu);
-            button.classList.remove('open');
-            menu.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
-            item.classList.add('selected');
-          });
-          
-          menu.appendChild(item);
-        });
-      }
-    }
+    refreshCustomDropdown(select);
   }
 
   function updateCRUI(department, semester, section) {
@@ -1318,13 +1280,29 @@
   });
 
   // Load teacher routine for selected teacher and department
-  async function loadTeacherRoutine(teacherShort, department) {
+  async function loadTeacherRoutine(teacherShort, department, forceReload = false) {
     if (!db || !teacherShort || !department) return;
+    
+    // Check if data is already loaded for this teacher+department combination
+    const teacherKey = `${teacherShort.toLowerCase().trim()}_${department}`;
+    if (!forceReload && teacherDataLoaded && loadedTeacherKey === teacherKey && Object.keys(teacherRoutineData).length > 0) {
+      // Data already loaded, just render it
+      const today = getTodayInfo();
+      const dayToShow = DAYS_ORDER.includes(today.dayName) ? today.dayName : DAYS_ORDER[0];
+      buildTeacherDays(dayToShow);
+      renderTeacherDay(dayToShow);
+      updateTeacherBatchInfo();
+      updateTeacherVersionInfo();
+      return;
+    }
     
     // Clear previous listener
     if (activeTeacherDbRef) {
       activeTeacherDbRef.off();
       activeTeacherDbRef = null;
+      if (window.AppState) {
+        window.AppState.activeTeacherDbRef = null;
+      }
     }
 
     // Update UI
@@ -1334,6 +1312,16 @@
 
     // Load all routines for this department and filter by teacher
     teacherRoutineData = {};
+    teacherDataLoaded = false;
+    loadedTeacherKey = '';
+    
+    // Sync with AppState
+    if (window.AppState) {
+      window.AppState.teacherRoutineData = teacherRoutineData;
+      window.AppState.teacherDataLoaded = teacherDataLoaded;
+      window.AppState.loadedTeacherKey = loadedTeacherKey;
+      window.AppState.activeTeacherDbRef = activeTeacherDbRef;
+    }
     const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
     let totalSections = 0;
     let loadedCount = 0;
@@ -1367,9 +1355,20 @@
           loadedCount++;
           // When all data is loaded, show today's day (don't shift to other days)
           if (loadedCount === totalSections) {
+            // Mark data as loaded
+            teacherDataLoaded = true;
+            loadedTeacherKey = teacherKey;
+            
             // Always use today's day, don't shift to days with classes
             const today = getTodayInfo();
             const dayToShow = DAYS_ORDER.includes(today.dayName) ? today.dayName : DAYS_ORDER[0];
+            
+            // Update state
+            if (window.AppState) {
+              window.AppState.teacherRoutineData = teacherRoutineData;
+              window.AppState.teacherDataLoaded = teacherDataLoaded;
+              window.AppState.loadedTeacherKey = loadedTeacherKey;
+            }
             
             // Build day scroller and render
             buildTeacherDays(dayToShow);
@@ -1479,6 +1478,11 @@
       const timeB = parseTime(b.time || '0:00');
       return timeA - timeB;
     });
+    
+    // Update state
+    if (window.AppState) {
+      window.AppState.currentTeacherDay = currentTeacherDay;
+    }
 
     // Render
     els.teacherScheduleContainer.innerHTML = '';
@@ -1527,12 +1531,6 @@
     });
   }
 
-  function parseTime(timeStr) {
-    const m = timeStr.match(/(\d{1,2}):(\d{2})/);
-    if (!m) return 0;
-    return parseInt(m[1],10) * 60 + parseInt(m[2],10);
-  }
-
   // Load last searched teacher when teacher tab is clicked
   function loadLastTeacher() {
     const lastTeacher = localStorage.getItem('cse.lastTeacher');
@@ -1565,6 +1563,8 @@
     
     // Load departments first
     await loadDepartments();
+    const defaultQueryDept = (departments[0] && departments[0].name) || 'EEE';
+    ensureRoomQueryData(defaultQueryDept);
     
     // Set up global click handler for closing dropdowns
     if (!document.__dropdownCloseHandler) {
@@ -1585,6 +1585,16 @@
     
     // Load teachers
     loadAllTeachers();
+    
+    // Preload teacher routine data in background if last teacher exists
+    const lastTeacher = localStorage.getItem('cse.lastTeacher');
+    const lastDept = localStorage.getItem('cse.lastTeacherDept') || 'EEE';
+    if (lastTeacher && lastDept && db) {
+      // Preload teacher routine data asynchronously (don't wait for it)
+      loadTeacherRoutine(lastTeacher, lastDept).catch(err => {
+        console.warn('Failed to preload teacher routine:', err);
+      });
+    }
     
     // Initialize sections when department and semester are selected
     if (els.department && els.semester) {
@@ -1629,6 +1639,11 @@
   // Room Query functionality
   let roomQueryCurrentDay = null;
   let roomQuerySelectedTimeSlot = null;
+  const roomQueryDataCache = {
+    routinesByDept: {},
+    roomsByDept: {},
+    listeners: {}
+  };
   
   // Format time slot to AM/PM format
   function formatTimeSlot(timeSlot) {
@@ -1697,59 +1712,83 @@
       els.roomQueryDateToday.textContent = roomQueryCurrentDay === today.dayName ? today.label : '';
     }
   }
-  
-  async function populateRoomNumbers(department) {
-    if (!els.roomQueryThirdSelect) return;
-    els.roomQueryThirdSelect.innerHTML = '<option value="">Select Room</option>';
-    els.roomQueryThirdSelect.disabled = true;
-    
-    if (!db || !department) return;
-    
-    // Collect all unique room numbers from all routines for this department
-    const allRooms = new Set();
-    const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
-    
-    let totalLoads = 0;
-    let loadCount = 0;
-    
-    // First, count total sections
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      totalLoads += sections.length;
-    }
-    
-    if (totalLoads === 0) {
-      els.roomQueryThirdSelect.disabled = false;
-      return;
-    }
-    
-    // Then load routines
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      for (const sec of sections) {
-        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
-          const dayData = snap.val() || {};
-          DAYS_ORDER.forEach(day => {
-            const slots = dayData[day] || [];
-            slots.forEach(slot => {
-              if (slot.room) allRooms.add(slot.room);
-            });
+
+  function extractRoomsFromRoutineTree(routineTree) {
+    const rooms = new Set();
+    Object.values(routineTree || {}).forEach(sem => {
+      Object.values(sem || {}).forEach(section => {
+        Object.values(section || {}).forEach(daySlots => {
+          (daySlots || []).forEach(slot => {
+            if (slot && slot.room) rooms.add(slot.room);
           });
-          
-          loadCount++;
-          if (loadCount === totalLoads) {
-            const sortedRooms = Array.from(allRooms).sort();
-            sortedRooms.forEach(room => {
-              const opt = document.createElement('option');
-              opt.value = room;
-              opt.textContent = room;
-              els.roomQueryThirdSelect.appendChild(opt);
-            });
-            els.roomQueryThirdSelect.disabled = false;
-          }
         });
+      });
+    });
+    return Array.from(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  function ensureRoomQueryData(department) {
+    if (!db || !department) return;
+    if (roomQueryDataCache.listeners[department]) return;
+
+    const ref = db.ref(`routines/${department}`);
+    roomQueryDataCache.listeners[department] = ref;
+    ref.on('value', (snap) => {
+      const data = snap.val() || {};
+      roomQueryDataCache.routinesByDept[department] = data;
+      roomQueryDataCache.roomsByDept[department] = extractRoomsFromRoutineTree(data);
+
+      if (els.roomQuerySearchBy?.value === 'room') {
+        const currentDept = els.roomQueryDepartment?.value || 'EEE';
+        if (currentDept === department) {
+          refreshRoomNumberDropdown(department);
+        }
       }
+    }, (error) => {
+      console.error('Failed to watch room query data:', error);
+    });
+  }
+
+  function refreshRoomNumberDropdown(department) {
+    if (!els.roomQueryThirdSelect) return;
+    const select = els.roomQueryThirdSelect;
+    const previousValue = select.value;
+    const rooms = roomQueryDataCache.roomsByDept[department] || [];
+
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = rooms.length ? 'Select Room' : 'Loading rooms...';
+    select.appendChild(placeholder);
+
+    rooms.forEach(room => {
+      const opt = document.createElement('option');
+      opt.value = room;
+      opt.textContent = room;
+      select.appendChild(opt);
+    });
+
+    if (rooms.includes(previousValue)) {
+      select.value = previousValue;
+    } else {
+      select.value = '';
     }
+
+    select.disabled = rooms.length === 0;
+    refreshCustomDropdown(select);
+  }
+
+  function showRoomQueryLoading(message = 'Loading latest room data...') {
+    if (els.roomQueryResults) {
+      els.roomQueryResults.innerHTML = `<div class="empty">${message}</div>`;
+    }
+  }
+  
+  function populateRoomNumbers(department) {
+    if (!els.roomQueryThirdSelect) return;
+    const dept = department || 'EEE';
+    ensureRoomQueryData(dept);
+    refreshRoomNumberDropdown(dept);
   }
 
   function populateTimeSlots() {
@@ -1773,10 +1812,15 @@
     els.roomQueryThirdSelect.disabled = false;
   }
 
-  async function queryRoomByNumber(roomNumber, department) {
-    if (!db || !roomNumber || !department) return;
+  function queryRoomByNumber(roomNumber, department) {
+    if (!roomNumber || !department) return;
+    const routines = roomQueryDataCache.routinesByDept[department];
+    if (!routines) {
+      showRoomQueryLoading();
+      ensureRoomQueryData(department);
+      return;
+    }
     
-    // All possible time slots
     const allTimeSlots = [
       '9:00 - 10:25',
       '10:25 - 11:50',
@@ -1785,97 +1829,52 @@
       '3:10 - 4:35',
       '4:35 - 6:00'
     ];
-    
     const occupiedSlots = new Set();
-    const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
     
-    let totalLoads = 0;
-    let loadCount = 0;
-    
-    // Count total sections for this department
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      totalLoads += sections.length;
-    }
-    
-    if (totalLoads === 0) {
-      renderRoomQueryResults([], 'room', roomNumber);
-      return;
-    }
-    
-    // Check all days for room number search (no day filter)
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      for (const sec of sections) {
-        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
-          const dayData = snap.val() || {};
-          DAYS_ORDER.forEach(day => {
-            const slots = dayData[day] || [];
-            slots.forEach(slot => {
-              if (slot.room === roomNumber && slot.time) {
-                occupiedSlots.add(slot.time);
-              }
-            });
-          });
-          
-          loadCount++;
-          if (loadCount === totalLoads) {
-            // Find free time slots (across all days)
-            const freeSlots = allTimeSlots.filter(slot => !occupiedSlots.has(slot));
-            renderRoomQueryResults(freeSlots.map(slot => ({ room: roomNumber, timeSlot: slot })), 'room', roomNumber);
-          }
-        });
-      }
-    }
-  }
-
-  async function queryRoomByTimeSlot(timeSlot, department, selectedDay) {
-    if (!db || !timeSlot || !department) return;
-    if (!selectedDay) selectedDay = roomQueryCurrentDay || DAYS_ORDER[0];
-    
-    // Get all rooms from department routines
-    const allRooms = new Set();
-    const occupiedRooms = new Set();
-    const semesters = ['1-1','1-2','2-1','2-2','3-1','3-2','4-1','4-2'];
-    
-    let totalLoads = 0;
-    let loadCount = 0;
-    
-    // Count total sections for this department
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      totalLoads += sections.length;
-    }
-    
-    if (totalLoads === 0) {
-      renderRoomQueryResults([], 'timeslot', timeSlot, selectedDay);
-      return;
-    }
-    
-    for (const sem of semesters) {
-      const sections = await loadDepartmentSections(department, sem);
-      for (const sec of sections) {
-        db.ref(`routines/${department}/${sem}/${sec}`).once('value', (snap) => {
-          const dayData = snap.val() || {};
-          const slots = dayData[selectedDay] || [];
+    Object.values(routines).forEach(sem => {
+      Object.values(sem || {}).forEach(section => {
+        DAYS_ORDER.forEach(day => {
+          const slots = (section?.[day]) || [];
           slots.forEach(slot => {
-            if (slot.room) {
-              allRooms.add(slot.room);
-              if (slot.time === timeSlot) {
-                occupiedRooms.add(slot.room);
-              }
+            if (slot && slot.room === roomNumber && slot.time) {
+              occupiedSlots.add(slot.time);
             }
           });
-          
-          loadCount++;
-          if (loadCount === totalLoads) {
-            // Find free rooms for this time slot on selected day
-            const freeRooms = Array.from(allRooms).filter(room => !occupiedRooms.has(room));
-            renderRoomQueryResults(freeRooms.map(room => ({ room: room, timeSlot: timeSlot })), 'timeslot', timeSlot, selectedDay);
+        });
+      });
+    });
+    
+    const freeSlots = allTimeSlots.filter(slot => !occupiedSlots.has(slot));
+    renderRoomQueryResults(freeSlots.map(slot => ({ room: roomNumber, timeSlot: slot })), 'room', roomNumber);
+  }
+
+  function queryRoomByTimeSlot(timeSlot, department, selectedDay) {
+    if (!timeSlot || !department) return;
+    const routines = roomQueryDataCache.routinesByDept[department];
+    if (!routines) {
+      showRoomQueryLoading();
+      ensureRoomQueryData(department);
+      return;
+    }
+    const dayToUse = selectedDay || roomQueryCurrentDay || DAYS_ORDER[0];
+    const allRooms = new Set(roomQueryDataCache.roomsByDept[department] || []);
+    const occupiedRooms = new Set();
+
+    Object.values(routines).forEach(sem => {
+      Object.values(sem || {}).forEach(section => {
+        const slots = (section?.[dayToUse]) || [];
+        slots.forEach(slot => {
+          if (!slot || !slot.room) return;
+          allRooms.add(slot.room);
+          if (slot.time === timeSlot) {
+            occupiedRooms.add(slot.room);
           }
         });
-      }
-    }
+      });
+    });
+
+    const freeRooms = Array.from(allRooms).filter(room => !occupiedRooms.has(room));
+    renderRoomQueryResults(freeRooms.map(room => ({ room, timeSlot })), 'timeslot', timeSlot, dayToUse);
   }
 
   function renderRoomQueryResults(data, type, queryValue, selectedDay) {
@@ -1976,7 +1975,7 @@
       
       if (searchBy === 'room') {
         els.roomQueryThirdLabel.textContent = 'Room Number';
-        populateRoomNumbers(els.roomQueryDepartment?.value || 'EEE').catch(() => {});
+        populateRoomNumbers(els.roomQueryDepartment?.value || 'EEE');
       } else if (searchBy === 'timeslot') {
         els.roomQueryThirdLabel.textContent = 'Time Slot';
         populateTimeSlots();
@@ -2042,8 +2041,9 @@
   if (els.roomQueryDepartment) {
     els.roomQueryDepartment.addEventListener('change', () => {
       const searchBy = els.roomQuerySearchBy?.value;
+      ensureRoomQueryData(els.roomQueryDepartment.value || 'EEE');
       if (searchBy === 'room') {
-        populateRoomNumbers(els.roomQueryDepartment.value).catch(() => {});
+        populateRoomNumbers(els.roomQueryDepartment.value);
       }
       els.roomQueryResults.innerHTML = '';
     });

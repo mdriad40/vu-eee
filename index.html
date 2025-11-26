@@ -326,7 +326,40 @@
     <!-- Firebase SDK (Compat for non-module setup) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+    <!-- Modular JavaScript files for better performance -->
+    <script src="js/config.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Quick loading page check script - runs immediately to avoid delays -->
+    <script>
+      (function() {
+        // Immediately check localStorage and show/hide screens to prevent loading delay
+        // This runs before app.js loads to ensure instant screen display
+        try {
+          const hasVisited = localStorage.getItem('cse.hasVisited') === '1';
+          const department = localStorage.getItem('cse.department');
+          const semester = localStorage.getItem('cse.semester');
+          const section = localStorage.getItem('cse.section');
+          
+          const landingEl = document.getElementById('landing');
+          const studentEl = document.getElementById('student');
+          
+          // If user has visited and has persisted selection, hide landing and show student immediately
+          if (hasVisited && department && semester && section && landingEl && studentEl) {
+            landingEl.classList.add('hidden');
+            studentEl.classList.remove('hidden');
+          } else if (landingEl) {
+            // Ensure landing is visible for new users
+            landingEl.classList.remove('hidden');
+            if (studentEl) studentEl.classList.add('hidden');
+          }
+        } catch (e) {
+          // Silently fail if elements don't exist yet (they will be handled by app.js)
+        }
+      })();
+    </script>
 </body>
 </html>
 
