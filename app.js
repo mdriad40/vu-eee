@@ -91,31 +91,57 @@
     teacherContactDesignation: document.getElementById('teacherContactDesignation'),
     teacherContactPhone: document.getElementById('teacherContactPhone'),
     teacherContactEmail: document.getElementById('teacherContactEmail'),
-    teacherContactDepartment: document.getElementById('teacherContactDepartment')
+    teacherContactDepartment: document.getElementById('teacherContactDepartment'),
+    // Student loading overlay
+    studentLoadingOverlay: document.getElementById('studentLoadingOverlay')
   };
 
   function enableRipple(node) {
     if (!node || node.dataset.ripple === 'true') return;
     node.dataset.ripple = 'true';
+    
+    // Add multiple event listeners for better browser/webview compatibility
+    node.addEventListener('click', handleRipple);
+    node.addEventListener('touchstart', handleRipple, { passive: true });
     node.addEventListener('pointerdown', handleRipple);
   }
 
   function handleRipple(event) {
     const target = event.currentTarget;
     if (!target) return;
+    
+    // Prevent multiple ripples from same event sequence
+    if (target.querySelector('.touch-ripple')) {
+      return;
+    }
+    
     const rect = target.getBoundingClientRect();
     const ripple = document.createElement('span');
     ripple.className = 'touch-ripple';
     const maxDimension = Math.max(rect.width, rect.height);
     const baseSize = Math.min(Math.max(maxDimension * 1.35, 80), 140);
-    const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX);
-    const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY);
-    const originX = (clientX ?? rect.left + rect.width / 2) - rect.left;
-    const originY = (clientY ?? rect.top + rect.height / 2) - rect.top;
+    
+    // For tab buttons, start ripple from icon center (middle of button)
+    // For other elements, use click/touch position
+    const isTab = target.classList.contains('tab');
+    let originX, originY;
+    
+    if (isTab) {
+      // Start from center of tab button (where icon is positioned)
+      originX = rect.width / 2;
+      originY = rect.height / 2;
+    } else {
+      // Use click/touch position for other elements
+      const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX) ?? (event.changedTouches && event.changedTouches[0]?.clientX);
+      const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY) ?? (event.changedTouches && event.changedTouches[0]?.clientY);
+      originX = (clientX ?? rect.left + rect.width / 2) - rect.left;
+      originY = (clientY ?? rect.top + rect.height / 2) - rect.top;
+    }
+    
     ripple.style.width = ripple.style.height = `${baseSize}px`;
     ripple.style.left = `${originX - baseSize / 2}px`;
     ripple.style.top = `${originY - baseSize / 2}px`;
-    ripple.style.animationDuration = '360ms';
+    ripple.style.animationDuration = '400ms';
     target.appendChild(ripple);
     ripple.addEventListener('animationend', () => ripple.remove());
   }
@@ -124,43 +150,71 @@
   function initLottie() {
     if (!window.lottie || !els.lottie) return;
     try {
+      // Use cached animation data if available (instant load)
+      if (window.__landingAnimationData) {
+        window.lottie.loadAnimation({
+          container: els.lottie,
+          renderer: 'svg',
+          loop: true,
+          autoplay: true,
+          animationData: window.__landingAnimationData
+        });
+        return;
+      }
+      
+      // Fallback: try to get from localStorage cache
+      try {
+        const cached = localStorage.getItem('cse.landingAnimationData');
+        const cachedVersion = localStorage.getItem('cse.landingAnimationData.version');
+        if (cached && cachedVersion === '1') {
+          const animationData = JSON.parse(cached);
+          window.__landingAnimationData = animationData;
+          window.lottie.loadAnimation({
+            container: els.lottie,
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            animationData: animationData
+          });
+          return;
+        }
+      } catch (e) {
+        // Cache invalid, use path fallback
+      }
+      
+      // Final fallback: load from path (slower but works)
       window.lottie.loadAnimation({
         container: els.lottie,
         renderer: 'svg',
         loop: true,
         autoplay: true,
-        path: 'https://assets10.lottiefiles.com/packages/lf20_mK7G3Y.json' // student working
+        path: 'animation_file/loading.json'
       });
     } catch (_) {}
   }
 
   // Track empty Lottie animation instance
   let emptyLottieInstance = null;
+  let emptyLottieLoading = false;
+
 
   // Init empty Lottie animation (panda sleeping)
   function initEmptyLottie() {
+    if (emptyLottieInstance || emptyLottieLoading) return;
+    emptyLottieLoading = true;
     // Wait for Lottie library to be available
     if (!window.lottie || typeof window.lottie.loadAnimation !== 'function') {
-      console.warn('Lottie library not loaded yet, retrying...');
-      // Retry after a short delay
-      setTimeout(() => {
-        initEmptyLottie();
-      }, 100);
+      emptyLottieLoading = false;
       return;
     }
     if (!els.emptyLottie) {
-      console.warn('Empty Lottie container not found');
+      emptyLottieLoading = false;
       return;
     }
     // Check if container is visible
     if (els.emptyMessage.classList.contains('hidden')) {
-      console.warn('Empty message is hidden, skipping animation load');
+      emptyLottieLoading = false;
       return;
-    }
-    // Destroy previous instance if exists
-    if (emptyLottieInstance) {
-      emptyLottieInstance.destroy();
-      emptyLottieInstance = null;
     }
     // Clear container before loading new animation
     els.emptyLottie.innerHTML = '';
@@ -179,7 +233,7 @@
           return;
         }
         if (!window.lottie || typeof window.lottie.loadAnimation !== 'function') {
-          console.error('Lottie library not available when trying to load animation');
+          emptyLottieLoading = false;
           return;
         }
         try {
@@ -190,29 +244,28 @@
             autoplay: true,
             animationData: animationData
           });
-          console.log('Lottie animation loaded successfully');
+          emptyLottieLoading = false;
         } catch (e) {
           console.error('Failed to initialize Lottie animation:', e);
+          emptyLottieLoading = false;
         }
       })
       .catch(error => {
         console.error('Failed to load empty Lottie animation file:', error);
-        // Fallback: try using path directly
-        if (!els.emptyMessage.classList.contains('hidden') && window.lottie && typeof window.lottie.loadAnimation === 'function') {
-          try {
-            emptyLottieInstance = window.lottie.loadAnimation({
-              container: els.emptyLottie,
-              renderer: 'svg',
-              loop: true,
-              autoplay: true,
-              path: 'animation_file/Panda sleeping waiting lottie animation.json'
-            });
-            console.log('Lottie animation loaded using path fallback');
-          } catch (e2) {
-            console.error('Fallback path method also failed:', e2);
-          }
-        }
+        emptyLottieLoading = false;
       });
+  }
+
+  function showStudentLoading() {
+    if (!els.studentLoadingOverlay) return;
+    // Show overlay immediately - CSS animation handles the loader
+    els.studentLoadingOverlay.classList.remove('hidden');
+  }
+
+  function hideStudentLoading() {
+    if (els.studentLoadingOverlay) {
+      els.studentLoadingOverlay.classList.add('hidden');
+    }
   }
 
   // Utilities
@@ -775,10 +828,45 @@
     return map[code] || code || '';
   };
   
-  const parseTime = window.AppUtils?.parseTime || function(timeStr) {
-    const m = timeStr.match(/(\d{1,2}):(\d{2})/);
-    if (!m) return 0;
-    return parseInt(m[1],10) * 60 + parseInt(m[2],10);
+  // Predefined time slot order (same as admin page dropdown menu)
+  // This ensures serial-wise sorting without clock conversion
+  const TIME_SLOT_ORDER = [
+    '9:00 - 10:25',
+    '10:25 - 11:50',
+    '11:50 - 1:15',
+    '1:45 - 3:10',
+    '3:10 - 4:35',
+    '4:35 - 6:00'
+  ];
+
+  // Get time slot index for sorting (serial wise)
+  const getTimeSlotIndex = window.AppUtils?.getTimeSlotIndex || function(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return 999; // Put unknown times at end
+    
+    // Clean the time string (remove extra spaces, normalize format)
+    timeStr = timeStr.trim();
+    
+    // Try exact match first
+    const exactIndex = TIME_SLOT_ORDER.indexOf(timeStr);
+    if (exactIndex !== -1) return exactIndex;
+    
+    // Try matching with different separators (handle variations)
+    for (let i = 0; i < TIME_SLOT_ORDER.length; i++) {
+      const slot = TIME_SLOT_ORDER[i];
+      // Normalize both strings for comparison (remove spaces, handle different separators)
+      const normalizedSlot = slot.replace(/\s+/g, ' ').trim();
+      const normalizedTime = timeStr.replace(/\s+/g, ' ').trim();
+      
+      // Check if time string matches or starts with slot pattern
+      if (normalizedTime === normalizedSlot || 
+          normalizedTime.startsWith(normalizedSlot.split(' - ')[0]) ||
+          normalizedTime.includes(normalizedSlot.split(' - ')[0].replace(':', ''))) {
+        return i;
+      }
+    }
+    
+    // If no match found, return large number to put at end
+    return 999;
   };
 
   // Landing: Get Schedule
@@ -792,11 +880,11 @@
     }
     els.landingError.textContent = '';
     persistSelection(dept, sem, sec);
-    await loadStudent(dept, sem, sec);
     setScreen('student');
+    await loadStudent(dept, sem, sec);
   });
 
-  // Bottom tabs
+  // Bottom tabs - enable ripple effect for all tabs
   els.tabs.forEach(btn => {
     enableRipple(btn);
     btn.addEventListener('click', () => {
@@ -917,17 +1005,29 @@
       emptyLottieInstance = null;
     }
     if (!items || items.length === 0) {
-      // Show empty message first
+      els.detailsTotal.textContent = '0';
       els.emptyMessage.classList.remove('hidden');
-      // Wait a bit longer to ensure the element is fully visible in the DOM
-      // Initialize Lottie animation when showing empty message
-      setTimeout(() => {
-        initEmptyLottie();
-      }, 150);
+      if (!emptyLottieInstance && !emptyLottieLoading) {
+        setTimeout(() => {
+          if (!els.emptyMessage.classList.contains('hidden')) {
+            initEmptyLottie();
+          }
+        }, 150);
+      }
       return;
     }
-    els.detailsTotal.textContent = String(items.length);
-    for (const it of items) {
+    
+    // Sort items by time slot order (serial wise - same as admin page dropdown)
+    // Uses predefined time slot order instead of clock conversion
+    const sortedItems = [...items].sort((a, b) => {
+      const indexA = getTimeSlotIndex(a.time || '');
+      const indexB = getTimeSlotIndex(b.time || '');
+      // Sort by predefined order index (0 = first slot, 1 = second slot, etc.)
+      return indexA - indexB;
+    });
+    
+    els.detailsTotal.textContent = String(sortedItems.length);
+    for (const it of sortedItems) {
       const card = document.createElement('div');
       card.className = 'slot-card';
 
@@ -988,6 +1088,7 @@
   }
 
   async function loadStudent(department, semester, section) {
+    showStudentLoading();
     // Fill displays
     fillSemesterSelect(els.semesterDisplay, semester);
     await populateSections(els.sectionDisplay, semester, section, department);
@@ -1024,6 +1125,7 @@
 
     // Show version label if loaded
     updateVersionUI(department, semester);
+    hideStudentLoading();
   }
 
   function fillSemesterSelect(select, selected) {
@@ -1559,7 +1661,20 @@
   }
 
   async function initEntry() {
+    // Try to init landing Lottie immediately if library is ready
     initLottie();
+    
+    // Also check periodically if Lottie library loads asynchronously
+    let lottieCheckCount = 0;
+    const lottieCheckInterval = setInterval(() => {
+      lottieCheckCount++;
+      if (window.lottie && els.lottie && !els.lottie.querySelector('svg')) {
+        initLottie();
+        clearInterval(lottieCheckInterval);
+      } else if (lottieCheckCount >= 20) {
+        clearInterval(lottieCheckInterval);
+      }
+    }, 50);
     
     // Load departments first
     await loadDepartments();
@@ -1609,8 +1724,8 @@
     const hasVisited = localStorage.getItem('cse.hasVisited') === '1';
     if (persisted && hasVisited) {
       // Skip landing, go straight to student
-      await loadStudent(persisted.department, persisted.semester, persisted.section);
       setScreen('student');
+      await loadStudent(persisted.department, persisted.semester, persisted.section);
     } else {
       // Show landing
       setScreen('landing');
@@ -1696,7 +1811,7 @@
         const value = els.roomQueryThirdSelect?.value;
         const department = els.roomQueryDepartment?.value || 'EEE';
         if (searchBy === 'room' && value) {
-          queryRoomByNumber(value, department);
+          queryRoomByNumber(value, department, day);
         } else if (searchBy === 'timeslot' && value) {
           queryRoomByTimeSlot(value, department, day);
         }
@@ -1812,7 +1927,7 @@
     els.roomQueryThirdSelect.disabled = false;
   }
 
-  function queryRoomByNumber(roomNumber, department) {
+  function queryRoomByNumber(roomNumber, department, selectedDay) {
     if (!roomNumber || !department) return;
     const routines = roomQueryDataCache.routinesByDept[department];
     if (!routines) {
@@ -1820,6 +1935,9 @@
       ensureRoomQueryData(department);
       return;
     }
+    
+    // Use selected day or current day, default to first day
+    const dayToUse = selectedDay || roomQueryCurrentDay || DAYS_ORDER[0];
     
     const allTimeSlots = [
       '9:00 - 10:25',
@@ -1831,15 +1949,14 @@
     ];
     const occupiedSlots = new Set();
     
+    // Only check the selected day for free slots
     Object.values(routines).forEach(sem => {
       Object.values(sem || {}).forEach(section => {
-        DAYS_ORDER.forEach(day => {
-          const slots = (section?.[day]) || [];
-          slots.forEach(slot => {
-            if (slot && slot.room === roomNumber && slot.time) {
-              occupiedSlots.add(slot.time);
-            }
-          });
+        const slots = (section?.[dayToUse]) || [];
+        slots.forEach(slot => {
+          if (slot && slot.room === roomNumber && slot.time) {
+            occupiedSlots.add(slot.time);
+          }
         });
       });
     });
@@ -2009,7 +2126,7 @@
           }
           buildRoomQueryDays(roomQueryCurrentDay);
         }
-        queryRoomByNumber(value, department);
+        queryRoomByNumber(value, department, roomQueryCurrentDay);
       } else if (searchBy === 'timeslot' && value) {
         roomQuerySelectedTimeSlot = value;
         // Show day selector for time slot search (empty rooms)

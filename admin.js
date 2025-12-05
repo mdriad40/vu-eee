@@ -167,15 +167,54 @@
     els.section.disabled = list.length === 0;
   }
 
-  function parseStart(timeStr) {
-    // Expect format: HH:MM - HH:MM
-    const m = timeStr.match(/(\d{1,2}):(\d{2})/);
-    if (!m) return 0;
-    return parseInt(m[1],10) * 60 + parseInt(m[2],10);
+  // Predefined time slot order (same as admin page dropdown menu)
+  // This ensures serial-wise sorting without clock conversion
+  const TIME_SLOT_ORDER = [
+    '9:00 - 10:25',
+    '10:25 - 11:50',
+    '11:50 - 1:15',
+    '1:45 - 3:10',
+    '3:10 - 4:35',
+    '4:35 - 6:00'
+  ];
+
+  // Get time slot index for sorting (serial wise)
+  function getTimeSlotIndex(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return 999; // Put unknown times at end
+    
+    // Clean the time string (remove extra spaces, normalize format)
+    timeStr = timeStr.trim();
+    
+    // Try exact match first
+    const exactIndex = TIME_SLOT_ORDER.indexOf(timeStr);
+    if (exactIndex !== -1) return exactIndex;
+    
+    // Try matching with different separators (handle variations)
+    for (let i = 0; i < TIME_SLOT_ORDER.length; i++) {
+      const slot = TIME_SLOT_ORDER[i];
+      // Normalize both strings for comparison (remove spaces, handle different separators)
+      const normalizedSlot = slot.replace(/\s+/g, ' ').trim();
+      const normalizedTime = timeStr.replace(/\s+/g, ' ').trim();
+      
+      // Check if time string matches or starts with slot pattern
+      if (normalizedTime === normalizedSlot || 
+          normalizedTime.startsWith(normalizedSlot.split(' - ')[0]) ||
+          normalizedTime.includes(normalizedSlot.split(' - ')[0].replace(':', ''))) {
+        return i;
+      }
+    }
+    
+    // If no match found, return large number to put at end
+    return 999;
   }
 
   function sortSlots(slots) {
-    return [...(slots||[])].sort((a,b) => parseStart(a.time||'0:00') - parseStart(b.time||'0:00'));
+    return [...(slots||[])].sort((a,b) => {
+      const indexA = getTimeSlotIndex(a.time || '');
+      const indexB = getTimeSlotIndex(b.time || '');
+      // Sort by predefined order index (0 = first slot, 1 = second slot, etc.)
+      return indexA - indexB;
+    });
   }
 
   // Local state for current day

@@ -878,12 +878,13 @@ body::-webkit-scrollbar {
     position: absolute;
     pointer-events: none;
     border-radius: 999px;
-    background: rgba(168, 139, 255, 0.2);
+    background: rgba(168, 139, 255, 0.25);
     transform: scale(0);
     opacity: 0.9;
-    animation: rippleWave 360ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    animation: rippleWave 400ms cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
     will-change: transform, opacity;
-    filter: blur(0.2px);
+    filter: blur(0.3px);
+    transform-origin: center center;
 }
 
 @keyframes rippleWave {
@@ -891,11 +892,11 @@ body::-webkit-scrollbar {
         transform: scale(0);
         opacity: 0.9;
     }
-    60% {
-        opacity: 0.45;
+    50% {
+        opacity: 0.5;
     }
     100% {
-        transform: scale(1);
+        transform: scale(1.2);
         opacity: 0;
     }
 }
@@ -1234,42 +1235,14 @@ body::-webkit-scrollbar {
 }
 
 /* Room Query Empty Slots - Easy to style from CSS */
-/* Container for all empty slot cards */
-.room-query-empty-slots {
-    /* Add your custom styles here - inherits from .schedule */
-}
-
-/* Individual empty slot card - same as slot-card but with this class for easy targeting */
-.room-query-empty-slot-card {
-    /* Add your custom styles here - inherits from .slot-card */
-    /* Example: background: var(--card); border: 1px solid var(--outline); */
-}
-
-/* Time slot on the left - colored bar */
-.room-query-empty-slot-time {
-    /* Add your custom styles here - inherits from .slot-time */
-    /* Example: background: #171717; color: var(--accent); */
-}
-
-/* Main content area on the right */
-.room-query-empty-slot-main {
-    /* Add your custom styles here - inherits from .slot-main */
-}
-
-/* Room number title */
-.room-query-empty-slot-title {
-    /* Add your custom styles here - inherits from .slot-title */
-    /* Example: color: var(--text); font-weight: 600; */
-}
-
-/* Room Query Free Slots (for room number search) */
-.room-query-free-slots {
-    /* Container for free slot blocks - full width, vertical stack */
-}
-
+.room-query-empty-slots,
+.room-query-empty-slot-card,
+.room-query-empty-slot-time,
+.room-query-empty-slot-main,
+.room-query-empty-slot-title,
+.room-query-free-slots,
 .room-query-free-slot-block {
-    /* Individual free slot block - full width */
-    /* Add your custom styles here */
+    display: block;
 }
 
 /* Room title - "Room: 402" */
@@ -1285,5 +1258,179 @@ body::-webkit-scrollbar {
 .room-query-free-slot-time {
     font-size: 11px;
     color: var(--muted);
+}
+
+/* Student loading overlay */
+.student-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.student-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.student-loading-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.student-loading-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 10, 25, 0.35);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.student-loading-content {
+    position: relative;
+    z-index: 1;
+    background: rgba(17, 17, 30, 0.65);
+    border-radius: 24px;
+    padding: 24px 28px 20px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Custom CSS Loader - Modern Smooth Animation */
+/* ===== CONTROL VARIABLES - Adjust these to change thickness and gap ===== */
+.custom-loader {
+    /* Thickness Control - Adjust these values to change stroke width */
+    --loader-thickness-outer: 4px;   /* Outer circle thickness (default: 5px) */
+    --loader-thickness-middle: 3px;  /* Middle circle thickness (default: 4px) */
+    --loader-thickness-inner: 2px;   /* Inner circle thickness (default: 3px) */
+    
+    /* Gap Control - To change gap, modify radius (r) values in HTML:
+       - Outer: r="48" (current)
+       - Middle: r="38" (gap = 48-38 = 10px)
+       - Inner: r="28" (gap = 38-28 = 10px)
+       Increase/decrease radius values to adjust gap between circles */
+    
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.custom-loader-svg {
+    width: 120px;
+    height: 120px;
+    transform-origin: center center;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.custom-loader-arc {
+    transform-origin: 60px 60px;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    opacity: 0.9;
+}
+
+/* Outer arc - smooth rotation with pulsing */
+.custom-loader-arc-outer {
+    stroke-width: var(--loader-thickness-outer);
+    /* Circumference = 2 * π * 48 ≈ 301.59 */
+    stroke-dasharray: 301.59;
+    stroke-dashoffset: 226.19; /* Start at 25% visible */
+    animation: custom-loader-spin-outer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Middle arc - counter rotation */
+.custom-loader-arc-middle {
+    stroke-width: var(--loader-thickness-middle);
+    /* Circumference = 2 * π * 38 ≈ 238.76 */
+    stroke-dasharray: 238.76;
+    stroke-dashoffset: 179.07; /* Start at 25% visible */
+    animation: custom-loader-spin-middle 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite reverse;
+    animation-delay: 0.2s;
+}
+
+/* Inner arc - faster rotation */
+.custom-loader-arc-inner {
+    stroke-width: var(--loader-thickness-inner);
+    /* Circumference = 2 * π * 28 ≈ 175.93 */
+    stroke-dasharray: 175.93;
+    stroke-dashoffset: 131.95; /* Start at 25% visible */
+    animation: custom-loader-spin-inner 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation-delay: 0.4s;
+}
+
+@keyframes custom-loader-spin-outer {
+    0% {
+        transform: rotate(-90deg);
+        stroke-dashoffset: 226.19;
+        opacity: 0.9;
+    }
+    50% {
+        stroke-dashoffset: 75.4; /* 75% visible */
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(270deg);
+        stroke-dashoffset: 226.19;
+        opacity: 0.9;
+    }
+}
+
+@keyframes custom-loader-spin-middle {
+    0% {
+        transform: rotate(-90deg);
+        stroke-dashoffset: 179.07;
+        opacity: 0.85;
+    }
+    50% {
+        stroke-dashoffset: 59.69; /* 75% visible */
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(-450deg);
+        stroke-dashoffset: 179.07;
+        opacity: 0.85;
+    }
+}
+
+@keyframes custom-loader-spin-inner {
+    0% {
+        transform: rotate(-90deg);
+        stroke-dashoffset: 131.95;
+        opacity: 0.8;
+    }
+    50% {
+        stroke-dashoffset: 43.98; /* 75% visible */
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(450deg);
+        stroke-dashoffset: 131.95;
+        opacity: 0.8;
+    }
+}
+
+.student-loading-text {
+    margin-top: 8px;
+    font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--text);
 }
 

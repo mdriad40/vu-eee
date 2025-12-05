@@ -3,11 +3,63 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CSE Routine</title>
+    <title>EEE Routine</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
+    <!-- Early Lottie animation preload and cache - runs immediately -->
+    <script>
+      (function() {
+        // Cache key for landing animation
+        const LANDING_ANIMATION_CACHE_KEY = 'cse.landingAnimationData';
+        const LANDING_ANIMATION_PATH = 'animation_file/loading.json';
+        const CACHE_VERSION = '1'; // Increment to invalidate cache
+        
+        // Preload and cache landing animation JSON immediately
+        function preloadLandingAnimation() {
+          // Check if cached data exists
+          try {
+            const cached = localStorage.getItem(LANDING_ANIMATION_CACHE_KEY);
+            const cachedVersion = localStorage.getItem(LANDING_ANIMATION_CACHE_KEY + '.version');
+            if (cached && cachedVersion === CACHE_VERSION) {
+              // Cache exists, store in global variable for instant access
+              window.__landingAnimationData = JSON.parse(cached);
+              return;
+            }
+          } catch (e) {
+            // Cache invalid, fetch fresh
+          }
+          
+          // Fetch and cache animation data
+          fetch(LANDING_ANIMATION_PATH)
+            .then(response => {
+              if (!response.ok) return;
+              return response.json();
+            })
+            .then(animationData => {
+              if (animationData) {
+                try {
+                  // Store in localStorage for next time
+                  localStorage.setItem(LANDING_ANIMATION_CACHE_KEY, JSON.stringify(animationData));
+                  localStorage.setItem(LANDING_ANIMATION_CACHE_KEY + '.version', CACHE_VERSION);
+                  // Store in global variable for instant access
+                  window.__landingAnimationData = animationData;
+                } catch (e) {
+                  // localStorage full or blocked, just use in-memory
+                  window.__landingAnimationData = animationData;
+                }
+              }
+            })
+            .catch(() => {
+              // Silently fail, will use path fallback
+            });
+        }
+        
+        // Start preloading immediately
+        preloadLandingAnimation();
+      })();
+    </script>
 </head>
 <body>
     <div id="app">
@@ -48,6 +100,43 @@
                 <p id="landingError" class="error-text" aria-live="polite"></p>
             </div>
         </section>
+
+        <!-- Global Student Loading Overlay (shown before student data fully loads) -->
+        <div id="studentLoadingOverlay" class="student-loading-overlay">
+            <div class="student-loading-backdrop"></div>
+            <div class="student-loading-content">
+                <div class="custom-loader">
+                    <svg class="custom-loader-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="loaderGradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#9E8CFF;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#6C6BFF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#C5C6FF;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="loaderGradient2" x1="100%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#C5C6FF;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#9E8CFF;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#6C6BFF;stop-opacity:0.8" />
+                            </linearGradient>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <!-- Outer rotating arc - Gap Control: Change r="48" to adjust gap (current gap: 10px between circles) -->
+                        <circle class="custom-loader-arc custom-loader-arc-outer" cx="60" cy="60" r="48" fill="none" stroke="url(#loaderGradient1)" stroke-linecap="round" filter="url(#glow)" />
+                        <!-- Middle rotating arc - Gap Control: Change r="38" to adjust gap -->
+                        <circle class="custom-loader-arc custom-loader-arc-middle" cx="60" cy="60" r="38" fill="none" stroke="url(#loaderGradient2)" stroke-linecap="round" />
+                        <!-- Inner rotating arc - Gap Control: Change r="28" to adjust gap -->
+                        <circle class="custom-loader-arc custom-loader-arc-inner" cx="60" cy="60" r="28" fill="none" stroke="url(#loaderGradient1)" stroke-linecap="round" />
+                    </svg>
+                </div>
+            <!-- <div class="student-loading-text">Loading your schedule...</div> -->
+            </div>
+        </div>
 
         <!-- Student Routine Screen -->
         <section id="student" class="screen hidden">
@@ -323,6 +412,77 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Instant Lottie animation loader - runs immediately after Lottie library loads -->
+    <script>
+      (function() {
+        // Function to start landing animation instantly
+        function startLandingAnimation() {
+          if (!window.lottie || typeof window.lottie.loadAnimation !== 'function') return;
+          const lottieContainer = document.getElementById('lottie');
+          if (!lottieContainer || lottieContainer.querySelector('svg')) return; // Already loaded
+          
+          // Use cached animation data if available (instant load)
+          if (window.__landingAnimationData) {
+            try {
+              window.lottie.loadAnimation({
+                container: lottieContainer,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                animationData: window.__landingAnimationData
+              });
+              return;
+            } catch (e) {}
+          }
+          
+          // Fallback: try localStorage cache
+          try {
+            const cached = localStorage.getItem('cse.landingAnimationData');
+            const cachedVersion = localStorage.getItem('cse.landingAnimationData.version');
+            if (cached && cachedVersion === '1') {
+              const animationData = JSON.parse(cached);
+              window.__landingAnimationData = animationData;
+              window.lottie.loadAnimation({
+                container: lottieContainer,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                animationData: animationData
+              });
+              return;
+            }
+          } catch (e) {}
+          
+          // Final fallback: use path
+          try {
+            window.lottie.loadAnimation({
+              container: lottieContainer,
+              renderer: 'svg',
+              loop: true,
+              autoplay: true,
+              path: 'animation_file/loading.json'
+            });
+          } catch (e) {}
+        }
+        
+        // Try to start immediately if Lottie is already loaded
+        if (window.lottie && typeof window.lottie.loadAnimation === 'function') {
+          startLandingAnimation();
+        } else {
+          // Wait for Lottie to load
+          let checkCount = 0;
+          const checkInterval = setInterval(() => {
+            checkCount++;
+            if (window.lottie && typeof window.lottie.loadAnimation === 'function') {
+              startLandingAnimation();
+              clearInterval(checkInterval);
+            } else if (checkCount >= 50) {
+              clearInterval(checkInterval);
+            }
+          }, 50);
+        }
+      })();
+    </script>
     <!-- Firebase SDK (Compat for non-module setup) -->
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
@@ -345,6 +505,7 @@
           
           const landingEl = document.getElementById('landing');
           const studentEl = document.getElementById('student');
+          const studentLoadingOverlay = document.getElementById('studentLoadingOverlay');
           
           // If user has visited and has persisted selection, hide landing and show student immediately
           if (hasVisited && department && semester && section && landingEl && studentEl) {
@@ -354,6 +515,7 @@
             // Ensure landing is visible for new users
             landingEl.classList.remove('hidden');
             if (studentEl) studentEl.classList.add('hidden');
+            if (studentLoadingOverlay) studentLoadingOverlay.classList.add('hidden');
           }
         } catch (e) {
           // Silently fail if elements don't exist yet (they will be handled by app.js)
